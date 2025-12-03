@@ -222,14 +222,28 @@ export default function ComunicacionesPage() {
                 </div>
 
                 <div className="flex gap-2 pt-4">
-                  <Button className="flex-1" variant="outline">
+                  <Button 
+                    className="flex-1" 
+                    variant="outline"
+                    onClick={() => alert("Borrador guardado exitosamente")}
+                    title="Guarda el mensaje para enviarlo más tarde"
+                  >
                     Guardar Borrador
                   </Button>
-                  <Button className="flex-1 bg-blue-500 hover:bg-blue-600">
+                  <Button 
+                    className="flex-1 bg-blue-500 hover:bg-blue-600"
+                    onClick={() => alert(`Mensaje enviado por ${selectedChannel === "whatsapp" ? "WhatsApp" : selectedChannel === "email" ? "Email" : "SMS"}`)}
+                    title="Envía el mensaje inmediatamente"
+                  >
                     <Send className="mr-2 h-4 w-4" />
                     Enviar Ahora
                   </Button>
-                  <Button className="flex-1" variant="outline">
+                  <Button 
+                    className="flex-1" 
+                    variant="outline"
+                    onClick={() => alert("Programar envío: Selecciona fecha y hora")}
+                    title="Programa el envío para una fecha y hora específica"
+                  >
                     <Clock className="mr-2 h-4 w-4" />
                     Programar
                   </Button>
@@ -300,8 +314,23 @@ export default function ComunicacionesPage() {
                 <CardContent>
                   <p className="text-sm text-muted-foreground mb-4">{template.content}</p>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" className="flex-1">Editar</Button>
-                    <Button size="sm" className="flex-1 bg-blue-500 hover:bg-blue-600">Usar</Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => alert(`Editando plantilla: ${template.name}`)}
+                      title="Modifica el contenido de esta plantilla"
+                    >
+                      Editar
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      className="flex-1 bg-blue-500 hover:bg-blue-600"
+                      onClick={() => alert(`Plantilla "${template.name}" cargada en el editor`)}
+                      title="Usa esta plantilla para enviar un mensaje"
+                    >
+                      Usar
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -322,7 +351,13 @@ export default function ComunicacionesPage() {
                 <Label>Contenido</Label>
                 <Textarea placeholder="Contenido del mensaje..." rows={4} />
               </div>
-              <Button className="bg-blue-500 hover:bg-blue-600">Guardar Plantilla</Button>
+              <Button 
+                className="bg-blue-500 hover:bg-blue-600"
+                onClick={() => alert("Plantilla creada exitosamente")}
+                title="Guarda esta plantilla para usarla en futuros mensajes"
+              >
+                Guardar Plantilla
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>

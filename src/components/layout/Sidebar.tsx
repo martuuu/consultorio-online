@@ -20,6 +20,7 @@ import {
   FileStack,
   Heart,
   Shield,
+  Home,
 } from "lucide-react";
 
 // Módulos del sistema con badges para indicar plan (MVP, Pro, Premium)
@@ -42,6 +43,12 @@ const sidebarItems = [
     href: "/pacientes",
     icon: Users,
     badge: null,
+  },
+  {
+    title: "Atención Domiciliaria",
+    href: "/ambulatorios",
+    icon: Home,
+    badge: null, // Feature incluida en plan BASE
   },
 
   // ===== PRO (Monetización Core) =====
@@ -99,9 +106,9 @@ const sidebarItems = [
   },
   {
     title: "Portal Pacientes",
-    href: "/portal-pacientes",
+    href: "/configuracion-portal",
     icon: Users,
-    badge: "ENTERPRISE", // Acceso web para pacientes
+    badge: "ENTERPRISE", // Configuración del portal web
   },
   {
     title: "Cumplimiento",

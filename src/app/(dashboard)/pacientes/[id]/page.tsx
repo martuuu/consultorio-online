@@ -45,13 +45,21 @@ import {
   Building2,
   AlertTriangle,
   MoreHorizontal,
-  Lightbulb
+  Lightbulb,
+  Pill,
+  FileCheck,
+  FilePlus,
+  Loader2,
+  X
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import patientsData from "@/lib/data/patients.json";
 import historyData from "@/lib/data/medical-history.json";
 import cie10Data from "@/lib/data/cie10-codes.json";
 import snippetsData from "@/lib/data/text-snippets.json";
 import type { Patient, MedicalRecord, CIE10Code, TextSnippet, PatientTag } from "@/types";
+import { toast } from "sonner";
+import { generatePrescription } from "@/lib/pdf-generator";
 
 export default function PatientDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -66,6 +74,110 @@ export default function PatientDetailsPage({ params }: { params: Promise<{ id: s
   const [height, setHeight] = useState(patient?.height?.toString() || "");
   const [showSnippets, setShowSnippets] = useState(false);
   const [isPrescriptionDialogOpen, setIsPrescriptionDialogOpen] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+
+  // Estado del formulario de receta
+  const [prescriptionForm, setPrescriptionForm] = useState({
+    diagnosis: "",
+    medications: [{ name: "", dosage: "", duration: "" }],
+    observations: "",
+  });
+
+  const handleAddMedication = () => {
+    setPrescriptionForm({
+      ...prescriptionForm,
+      medications: [...prescriptionForm.medications, { name: "", dosage: "", duration: "" }],
+    });
+  };
+
+  const handleRemoveMedication = (index: number) => {
+    const newMedications = prescriptionForm.medications.filter((_, i) => i !== index);
+    setPrescriptionForm({
+      ...prescriptionForm,
+      medications: newMedications.length > 0 ? newMedications : [{ name: "", dosage: "", duration: "" }],
+    });
+  };
+
+  const handleMedicationChange = (index: number, field: string, value: string) => {
+    const newMedications = [...prescriptionForm.medications];
+    newMedications[index] = { ...newMedications[index], [field]: value };
+    setPrescriptionForm({ ...prescriptionForm, medications: newMedications });
+  };
+
+  const handleGeneratePrescription = async () => {
+    // Validación
+    const hasValidMedication = prescriptionForm.medications.some(
+      med => med.name.trim() !== ""
+    );
+
+    if (!prescriptionForm.diagnosis) {
+      toast.error("Diagnóstico requerido", {
+        description: "Por favor ingresa un diagnóstico CIE-10",
+      });
+      return;
+    }
+
+    if (!hasValidMedication) {
+      toast.error("Medicación requerida", {
+        description: "Debes agregar al menos un medicamento",
+      });
+      return;
+    }
+
+    setIsGeneratingPDF(true);
+
+    try {
+      // Simular generación de PDF
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      // Generar PDF real
+      if (patient) {
+        const age = patient.birthDate 
+          ? Math.floor((new Date().getTime() - new Date(patient.birthDate).getTime()) / (1000 * 60 * 60 * 24 * 365))
+          : 0;
+
+        generatePrescription({
+          patientName: `${patient.firstName} ${patient.lastName}`,
+          patientDNI: patient.dni,
+          patientAge: age,
+          date: new Date(),
+          diagnosis: prescriptionForm.diagnosis,
+          medications: prescriptionForm.medications
+            .filter(med => med.name.trim() !== "")
+            .map(med => ({
+              name: med.name,
+              dosage: med.dosage,
+              frequency: "Cada 8 horas",
+              duration: med.duration,
+              instructions: prescriptionForm.observations,
+            })),
+          doctorName: "Dr. Martín Navarro",
+          doctorLicense: "M.N. 123456",
+          clinicName: "Consultorio Online",
+          clinicAddress: "Av. Corrientes 1234, CABA",
+          clinicPhone: "+54 11 1234-5678",
+        });
+      }
+
+      toast.success("Receta generada", {
+        description: "El PDF se descargó correctamente",
+      });
+
+      setIsPrescriptionDialogOpen(false);
+      // Reset form
+      setPrescriptionForm({
+        diagnosis: "",
+        medications: [{ name: "", dosage: "", duration: "" }],
+        observations: "",
+      });
+    } catch {
+      toast.error("Error al generar PDF", {
+        description: "Ocurrió un error al generar la receta",
+      });
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
 
   // Calcular IMC
   const bmi = useMemo(() => {
@@ -646,6 +758,214 @@ export default function PatientDetailsPage({ params }: { params: Promise<{ id: s
               <CardTitle className="text-base">Acciones Rápidas</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
+              <Dialog open={isPrescriptionDialogOpen} onOpenChange={setIsPrescriptionDialogOpen}>
+                <DialogTrigger asChild>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="outline" className="w-full justify-start" size="sm">
+                        <Pill className="mr-2 h-4 w-4" />
+                        Generar Receta
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Genera una receta médica en formato PDF con firma digital</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Generar Receta Médica</DialogTitle>
+                    <DialogDescription>
+                      Completa los datos de la prescripción. El PDF se generará automáticamente.
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <div className="space-y-6 py-4">
+                    {/* Diagnóstico CIE-10 */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor="prescription-diagnosis">
+                          Diagnóstico <span className="text-red-500">*</span>
+                        </Label>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button className="text-muted-foreground hover:text-foreground">
+                              <AlertCircle className="h-4 w-4" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Ingresa el código CIE-10 y descripción del diagnóstico</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="prescription-diagnosis"
+                          placeholder="Buscar diagnóstico CIE-10 (ej: J00 - Rinofaringitis aguda)"
+                          className="pl-8"
+                          value={prescriptionForm.diagnosis}
+                          onChange={(e) => {
+                            setPrescriptionForm({ ...prescriptionForm, diagnosis: e.target.value });
+                            setSearchCIE10(e.target.value);
+                          }}
+                        />
+                      </div>
+                      {searchCIE10 && filteredCIE10.length > 0 && (
+                        <div className="max-h-40 overflow-y-auto rounded-md border bg-popover p-2">
+                          {filteredCIE10.slice(0, 5).map((item) => (
+                            <button
+                              key={item.code}
+                              className="w-full rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent"
+                              onClick={() => {
+                                setPrescriptionForm({ 
+                                  ...prescriptionForm, 
+                                  diagnosis: `${item.code} - ${item.description}` 
+                                });
+                                setSearchCIE10("");
+                              }}
+                            >
+                              <span className="font-semibold text-primary">{item.code}</span> - {item.description}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Medicamentos */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label>
+                          Medicamentos <span className="text-red-500">*</span>
+                        </Label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleAddMedication}
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          Agregar
+                        </Button>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        {prescriptionForm.medications.map((med, index) => (
+                          <div key={index} className="grid gap-2 rounded-lg border p-3">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium">Medicamento {index + 1}</span>
+                              {prescriptionForm.medications.length > 1 && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleRemoveMedication(index)}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                            <div className="grid gap-2 sm:grid-cols-3">
+                              <Input
+                                placeholder="Nombre (ej: Ibuprofeno)"
+                                value={med.name}
+                                onChange={(e) => handleMedicationChange(index, "name", e.target.value)}
+                              />
+                              <Input
+                                placeholder="Dosis (ej: 400mg)"
+                                value={med.dosage}
+                                onChange={(e) => handleMedicationChange(index, "dosage", e.target.value)}
+                              />
+                              <Input
+                                placeholder="Duración (ej: 5 días)"
+                                value={med.duration}
+                                onChange={(e) => handleMedicationChange(index, "duration", e.target.value)}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Observaciones */}
+                    <div className="space-y-2">
+                      <Label htmlFor="prescription-observations">Observaciones / Indicaciones</Label>
+                      <Textarea
+                        id="prescription-observations"
+                        placeholder="Indicaciones especiales, precauciones, etc."
+                        rows={3}
+                        value={prescriptionForm.observations}
+                        onChange={(e) => setPrescriptionForm({ ...prescriptionForm, observations: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsPrescriptionDialogOpen(false)}
+                      disabled={isGeneratingPDF}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button onClick={handleGeneratePrescription} disabled={isGeneratingPDF}>
+                      {isGeneratingPDF ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Generando PDF...
+                        </>
+                      ) : (
+                        <>
+                          <FileCheck className="mr-2 h-4 w-4" />
+                          Generar y Descargar
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+              
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start" size="sm">
+                    <FilePlus className="mr-2 h-4 w-4" />
+                    Generar Orden de Estudios
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <Lightbulb className="h-5 w-5 text-amber-500" />
+                      Funcionalidad en Desarrollo
+                    </DialogTitle>
+                    <DialogDescription>
+                      La generación de órdenes de estudios médicos estará disponible en la próxima versión.
+                      Incluirá plantillas para laboratorio, imágenes, y estudios especializados.
+                    </DialogDescription>
+                  </DialogHeader>
+                </DialogContent>
+              </Dialog>
+              
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start" size="sm">
+                    <FileSignature className="mr-2 h-4 w-4" />
+                    Generar Certificado
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <Lightbulb className="h-5 w-5 text-amber-500" />
+                      Funcionalidad en Desarrollo
+                    </DialogTitle>
+                    <DialogDescription>
+                      La generación de certificados médicos estará disponible en la próxima versión.
+                      Podrás crear certificados de aptitud física, reposo, control médico y más.
+                    </DialogDescription>
+                  </DialogHeader>
+                </DialogContent>
+              </Dialog>
               <Button variant="outline" className="w-full justify-start" size="sm">
                 <Download className="mr-2 h-4 w-4" />
                 Exportar Historia Completa

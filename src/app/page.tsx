@@ -8,7 +8,8 @@ import {
   CheckCircle, 
   ArrowRight, 
   ShieldCheck, 
-  Zap 
+  Zap,
+  Home as HomeIcon 
 } from "lucide-react";
 
 export default function Home() {
@@ -109,11 +110,11 @@ export default function Home() {
                 </div>
                 <div className="flex flex-col">
                   <dt className="flex items-center gap-x-3 text-base font-semibold leading-7 text-foreground">
-                    <Globe className="h-5 w-5 flex-none text-primary" aria-hidden="true" />
-                    Turnero Público
+                    <HomeIcon className="h-5 w-5 flex-none text-primary" aria-hidden="true" />
+                    Atención Domiciliaria
                   </dt>
                   <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-muted-foreground">
-                    <p className="flex-auto">Tu propia URL (tudominio.com/turnos) para que tus pacientes reserven online 24/7 sin llamarte.</p>
+                    <p className="flex-auto">Ruteo inteligente para profesionales que atienden a domicilio. Zonas de cobertura, navegación y alertas automáticas.</p>
                   </dd>
                 </div>
                 <div className="flex flex-col">
@@ -165,7 +166,7 @@ export default function Home() {
                     </li>
                     <li className="flex gap-x-3">
                       <CheckCircle className="h-6 w-5 flex-none text-primary" />
-                      Turnero Web Público
+                      Atención Domiciliaria
                     </li>
                     <li className="flex gap-x-3">
                       <CheckCircle className="h-6 w-5 flex-none text-primary" />
@@ -323,6 +324,63 @@ export default function Home() {
               <p className="mt-6 text-lg leading-8 text-muted-foreground">
                 Desde lo básico hasta lo más avanzado. Agregá solo lo que necesitás cuando lo necesitás.
               </p>
+            </div>
+
+            {/* BASE Features - Atención Domiciliaria */}
+            <div className="mx-auto mt-16 max-w-7xl">
+              <div className="mb-8 flex items-center gap-3">
+                <div className="rounded-full bg-gray-500 px-4 py-1.5 text-sm font-semibold text-white">BASE - Incluido</div>
+                <h3 className="text-2xl font-bold text-foreground">Especializado en Atención Domiciliaria</h3>
+              </div>
+              <dl className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+                <div className="flex flex-col rounded-2xl border bg-card p-6 shadow-sm">
+                  <dt className="flex items-center gap-x-3 text-base font-semibold leading-7 text-foreground">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-500/10">
+                      <HomeIcon className="h-5 w-5 text-gray-500" />
+                    </div>
+                    Ruteo Inteligente y Navegación
+                  </dt>
+                  <dd className="mt-4 flex flex-auto flex-col text-sm leading-6 text-muted-foreground space-y-2">
+                    <p>• Organización automática de visitas por zona</p>
+                    <p>• Integración con Waze/Google Maps para navegación</p>
+                    <p>• Buffer de tiempo entre visitas para traslado</p>
+                    <p>• Vista de ruta del día optimizada</p>
+                    <p>• Estadísticas de km recorridos y puntualidad</p>
+                  </dd>
+                </div>
+
+                <div className="flex flex-col rounded-2xl border bg-card p-6 shadow-sm">
+                  <dt className="flex items-center gap-x-3 text-base font-semibold leading-7 text-foreground">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-500/10">
+                      <Globe className="h-5 w-5 text-gray-500" />
+                    </div>
+                    Zonas de Cobertura
+                  </dt>
+                  <dd className="mt-4 flex flex-auto flex-col text-sm leading-6 text-muted-foreground space-y-2">
+                    <p>• Define áreas de trabajo por código postal</p>
+                    <p>• Radio de cobertura configurable (en km)</p>
+                    <p>• Validación automática de direcciones</p>
+                    <p>• Activa/desactiva zonas según disponibilidad</p>
+                    <p>• Mensaje automático si dirección fuera de zona</p>
+                  </dd>
+                </div>
+
+                <div className="flex flex-col rounded-2xl border bg-card p-6 shadow-sm">
+                  <dt className="flex items-center gap-x-3 text-base font-semibold leading-7 text-foreground">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-500/10">
+                      <Users className="h-5 w-5 text-gray-500" />
+                    </div>
+                    Configuración por Especialidad
+                  </dt>
+                  <dd className="mt-4 flex flex-auto flex-col text-sm leading-6 text-muted-foreground space-y-2">
+                    <p>• Perfiles para kinesiólogos, enfermería, médicos, etc.</p>
+                    <p>• Tiempos de consulta personalizados</p>
+                    <p>• Buffer extra si llevas equipamiento</p>
+                    <p>• Alertas automáticas de demora al paciente</p>
+                    <p>• Botón &quot;Avisar llegada&quot; vía WhatsApp</p>
+                  </dd>
+                </div>
+              </dl>
             </div>
 
             {/* PRO Features */}

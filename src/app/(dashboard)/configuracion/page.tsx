@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,7 +35,12 @@ import {
   DoorOpen,
   Edit2,
   Save,
-  UserCog
+  UserCog,
+  Loader2,
+  Key,
+  ShieldCheck,
+  Upload,
+  Camera
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -52,8 +58,234 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 
 export default function ConfiguracionPage() {
+  // Estados generales
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Estados para horarios
+  const [isEditHoursDialogOpen, setIsEditHoursDialogOpen] = useState(false);
+  const [schedules, setSchedules] = useState([
+    { day: "Lunes a Viernes", start: "09:00", end: "18:00", enabled: true },
+    { day: "Sábados", start: "09:00", end: "13:00", enabled: true },
+    { day: "Domingos", start: "00:00", end: "00:00", enabled: false },
+  ]);
+
+  // Estados para salas
+  const [rooms, setRooms] = useState(roomsData);
+  const [isNewRoomDialogOpen, setIsNewRoomDialogOpen] = useState(false);
+  const [isEditRoomDialogOpen, setIsEditRoomDialogOpen] = useState(false);
+  const [roomToDelete, setRoomToDelete] = useState<number | null>(null);
+  const [editingRoom, setEditingRoom] = useState<{
+    id: number;
+    name: string;
+    type: string;
+    description?: string;
+  } | null>(null);
+  const [newRoom, setNewRoom] = useState({
+    name: "",
+    type: "",
+    description: ""
+  });
+
+  // Estados para usuarios
+  const [users, setUsers] = useState(usersData);
+  const [isNewUserDialogOpen, setIsNewUserDialogOpen] = useState(false);
+  const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<number | null>(null);
+  const [editingUser, setEditingUser] = useState<{
+    id: number;
+    name: string;
+    email: string;
+    role: string;
+    phone?: string;
+  } | null>(null);
+  const [newUser, setNewUser] = useState({
+    name: "",
+    email: "",
+    role: "",
+    phone: ""
+  });
+
+  // Estados para perfil
+  const [isChangePasswordDialogOpen, setIsChangePasswordDialogOpen] = useState(false);
+  const [is2FADialogOpen, setIs2FADialogOpen] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    current: "",
+    new: "",
+    confirm: ""
+  });
+
+  // Función guardar información del consultorio
+  const handleSaveClinicInfo = async () => {
+    setIsSaving(true);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    toast.success("Información del consultorio guardada correctamente");
+    setIsSaving(false);
+  };
+
+  // Función guardar horarios
+  const handleSaveSchedules = async () => {
+    setIsSaving(true);
+    await new Promise(resolve => setTimeout(resolve, 800));
+    toast.success("Horarios actualizados correctamente");
+    setIsEditHoursDialogOpen(false);
+    setIsSaving(false);
+  };
+
+  // Función crear sala
+  const handleCreateRoom = async () => {
+    if (!newRoom.name || !newRoom.type) {
+      toast.error("Por favor completa los campos obligatorios");
+      return;
+    }
+    
+    setIsSaving(true);
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    const room = {
+      id: rooms.length + 1,
+      name: newRoom.name,
+      type: newRoom.type,
+      description: newRoom.description
+    };
+    
+    setRooms([...rooms, room]);
+    toast.success(`Sala "${newRoom.name}" creada correctamente`);
+    setNewRoom({ name: "", type: "", description: "" });
+    setIsNewRoomDialogOpen(false);
+    setIsSaving(false);
+  };
+
+  // Función editar sala
+  const handleEditRoom = async () => {
+    if (!editingRoom || !editingRoom.name || !editingRoom.type) {
+      toast.error("Por favor completa los campos obligatorios");
+      return;
+    }
+    
+    setIsSaving(true);
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    setRooms(rooms.map(r => r.id === editingRoom.id ? { ...r, ...editingRoom } : r));
+    toast.success(`Sala "${editingRoom.name}" actualizada correctamente`);
+    setIsEditRoomDialogOpen(false);
+    setEditingRoom(null);
+    setIsSaving(false);
+  };
+
+  // Función eliminar sala
+  const handleDeleteRoom = async () => {
+    if (!roomToDelete) return;
+    
+    const room = rooms.find(r => r.id === roomToDelete);
+    setRooms(rooms.filter(r => r.id !== roomToDelete));
+    toast.success(`Sala "${room?.name}" eliminada correctamente`);
+    setRoomToDelete(null);
+  };
+
+  // Función invitar usuario
+  const handleInviteUser = async () => {
+    if (!newUser.name || !newUser.email || !newUser.role) {
+      toast.error("Por favor completa los campos obligatorios");
+      return;
+    }
+    
+    setIsSaving(true);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const user = {
+      id: users.length + 1,
+      name: newUser.name,
+      email: newUser.email,
+      role: newUser.role,
+      phone: newUser.phone,
+      status: "active" as const
+    };
+    
+    setUsers([...users, user]);
+    toast.success(`Invitación enviada a ${newUser.email}`);
+    setNewUser({ name: "", email: "", role: "", phone: "" });
+    setIsNewUserDialogOpen(false);
+    setIsSaving(false);
+  };
+
+  // Función editar usuario
+  const handleEditUser = async () => {
+    if (!editingUser || !editingUser.name || !editingUser.email || !editingUser.role) {
+      toast.error("Por favor completa los campos obligatorios");
+      return;
+    }
+    
+    setIsSaving(true);
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    setUsers(users.map(u => u.id === editingUser.id ? { ...u, ...editingUser } : u));
+    toast.success(`Usuario "${editingUser.name}" actualizado correctamente`);
+    setIsEditUserDialogOpen(false);
+    setEditingUser(null);
+    setIsSaving(false);
+  };
+
+  // Función eliminar usuario
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
+    
+    const user = users.find(u => u.id === userToDelete);
+    setUsers(users.filter(u => u.id !== userToDelete));
+    toast.success(`Usuario "${user?.name}" eliminado correctamente`);
+    setUserToDelete(null);
+  };
+
+  // Función cambiar contraseña
+  const handleChangePassword = async () => {
+    if (!passwordForm.current || !passwordForm.new || !passwordForm.confirm) {
+      toast.error("Por favor completa todos los campos");
+      return;
+    }
+    
+    if (passwordForm.new !== passwordForm.confirm) {
+      toast.error("Las contraseñas no coinciden");
+      return;
+    }
+    
+    if (passwordForm.new.length < 8) {
+      toast.error("La contraseña debe tener al menos 8 caracteres");
+      return;
+    }
+    
+    setIsSaving(true);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    toast.success("Contraseña cambiada correctamente");
+    setPasswordForm({ current: "", new: "", confirm: "" });
+    setIsChangePasswordDialogOpen(false);
+    setIsSaving(false);
+  };
+
+  // Función activar 2FA
+  const handleEnable2FA = async () => {
+    setIsSaving(true);
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    toast.success("Autenticación de dos factores activada");
+    setIs2FADialogOpen(false);
+    setIsSaving(false);
+  };
+
+  // Función cambiar foto perfil
+  const handleUploadPhoto = () => {
+    toast.info("Función de carga de foto disponible próximamente");
+  };
   return (
     <div className="flex flex-col space-y-6">
       <div className="flex flex-col gap-2">
@@ -111,9 +343,18 @@ export default function ConfiguracionPage() {
                     <Input id="email" type="email" placeholder="info@consultorio.com" />
                   </div>
                 </div>
-                <Button className="w-full">
-                  <Save className="mr-2 h-4 w-4" />
-                  Guardar Cambios
+                <Button className="w-full" onClick={handleSaveClinicInfo} disabled={isSaving}>
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Guardando...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      Guardar Cambios
+                    </>
+                  )}
                 </Button>
               </CardContent>
             </Card>
@@ -151,10 +392,69 @@ export default function ConfiguracionPage() {
                     <Badge variant="outline">Cerrado</Badge>
                   </div>
                 </div>
-                <Button className="w-full" variant="outline">
-                  <Edit2 className="mr-2 h-4 w-4" />
-                  Editar Horarios
-                </Button>
+                <Dialog open={isEditHoursDialogOpen} onOpenChange={setIsEditHoursDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="w-full" variant="outline">
+                      <Edit2 className="mr-2 h-4 w-4" />
+                      Editar Horarios
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Editar Horarios de Atención</DialogTitle>
+                      <DialogDescription>
+                        Configura los días y horarios de funcionamiento del consultorio
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      {schedules.map((schedule, index) => (
+                        <div key={index} className="flex items-center justify-between rounded-lg border p-3">
+                          <span className="text-sm font-medium w-32">{schedule.day}</span>
+                          <div className="flex gap-2 items-center">
+                            <Input 
+                              className="w-24 h-9" 
+                              type="time" 
+                              value={schedule.start}
+                              disabled={!schedule.enabled}
+                              onChange={(e) => {
+                                const newSchedules = [...schedules];
+                                newSchedules[index].start = e.target.value;
+                                setSchedules(newSchedules);
+                              }}
+                            />
+                            <span className="text-muted-foreground">-</span>
+                            <Input 
+                              className="w-24 h-9" 
+                              type="time" 
+                              value={schedule.end}
+                              disabled={!schedule.enabled}
+                              onChange={(e) => {
+                                const newSchedules = [...schedules];
+                                newSchedules[index].end = e.target.value;
+                                setSchedules(newSchedules);
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" onClick={() => setIsEditHoursDialogOpen(false)}>
+                        Cancelar
+                      </Button>
+                      <Button onClick={handleSaveSchedules} disabled={isSaving}>
+                        {isSaving ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Guardando...
+                          </>
+                        ) : (
+                          "Guardar Horarios"
+                        )}
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </CardContent>
             </Card>
           </div>
@@ -173,7 +473,7 @@ export default function ConfiguracionPage() {
                     Administra los espacios disponibles para la atención de pacientes.
                   </CardDescription>
                 </div>
-                <Dialog>
+                <Dialog open={isNewRoomDialogOpen} onOpenChange={setIsNewRoomDialogOpen}>
                   <DialogTrigger asChild>
                     <Button>
                       <Plus className="mr-2 h-4 w-4" /> Nueva Sala
@@ -188,19 +488,29 @@ export default function ConfiguracionPage() {
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                       <div className="grid gap-2">
-                        <Label htmlFor="room-name">Nombre de la Sala</Label>
-                        <Input id="room-name" placeholder="Ej: Consultorio 3" />
+                        <Label htmlFor="room-name">
+                          Nombre de la Sala <span className="text-red-500">*</span>
+                        </Label>
+                        <Input 
+                          id="room-name" 
+                          placeholder="Ej: Consultorio 3"
+                          value={newRoom.name}
+                          onChange={(e) => setNewRoom({ ...newRoom, name: e.target.value })}
+                        />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="room-type">Tipo</Label>
-                        <Select>
+                        <Label htmlFor="room-type">
+                          Tipo <span className="text-red-500">*</span>
+                        </Label>
+                        <Select value={newRoom.type} onValueChange={(value) => setNewRoom({ ...newRoom, type: value })}>
                           <SelectTrigger id="room-type">
                             <SelectValue placeholder="Selecciona el tipo" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="consultorio">Consultorio</SelectItem>
-                            <SelectItem value="procedimientos">Sala de Procedimientos</SelectItem>
-                            <SelectItem value="laboratorio">Laboratorio</SelectItem>
+                            <SelectItem value="Consultorio">Consultorio</SelectItem>
+                            <SelectItem value="Procedimientos">Sala de Procedimientos</SelectItem>
+                            <SelectItem value="Laboratorio">Laboratorio</SelectItem>
+                            <SelectItem value="Urgencias">Sala de Urgencias</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -210,9 +520,28 @@ export default function ConfiguracionPage() {
                           id="room-description" 
                           placeholder="Detalles sobre equipamiento, ubicación, etc."
                           rows={3}
+                          value={newRoom.description}
+                          onChange={(e) => setNewRoom({ ...newRoom, description: e.target.value })}
                         />
                       </div>
-                      <Button className="w-full">Crear Sala</Button>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" onClick={() => {
+                        setNewRoom({ name: "", type: "", description: "" });
+                        setIsNewRoomDialogOpen(false);
+                      }}>
+                        Cancelar
+                      </Button>
+                      <Button onClick={handleCreateRoom} disabled={isSaving}>
+                        {isSaving ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Creando...
+                          </>
+                        ) : (
+                          "Crear Sala"
+                        )}
+                      </Button>
                     </div>
                   </DialogContent>
                 </Dialog>
@@ -220,7 +549,7 @@ export default function ConfiguracionPage() {
             </CardHeader>
             <CardContent>
               <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                {roomsData.map((room) => (
+                {rooms.map((room) => (
                   <Card key={room.id} className="relative">
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between">
@@ -238,10 +567,23 @@ export default function ConfiguracionPage() {
                           </div>
                         </div>
                         <div className="flex gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8"
+                            onClick={() => {
+                              setEditingRoom(room);
+                              setIsEditRoomDialogOpen(true);
+                            }}
+                          >
                             <Edit2 className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-destructive"
+                            onClick={() => setRoomToDelete(room.id)}
+                          >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -267,7 +609,7 @@ export default function ConfiguracionPage() {
                     Gestiona los roles y permisos de acceso de tu equipo.
                   </CardDescription>
                 </div>
-                <Dialog>
+                <Dialog open={isNewUserDialogOpen} onOpenChange={setIsNewUserDialogOpen}>
                   <DialogTrigger asChild>
                     <Button>
                       <Plus className="mr-2 h-4 w-4" /> Invitar Usuario
@@ -282,28 +624,70 @@ export default function ConfiguracionPage() {
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                       <div className="grid gap-2">
-                        <Label htmlFor="user-name">Nombre Completo</Label>
-                        <Input id="user-name" placeholder="Dr. Juan Pérez" />
+                        <Label htmlFor="user-name">
+                          Nombre Completo <span className="text-red-500">*</span>
+                        </Label>
+                        <Input 
+                          id="user-name" 
+                          placeholder="Dr. Juan Pérez"
+                          value={newUser.name}
+                          onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                        />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="user-email">Email</Label>
-                        <Input id="user-email" type="email" placeholder="juan.perez@ejemplo.com" />
+                        <Label htmlFor="user-email">
+                          Email <span className="text-red-500">*</span>
+                        </Label>
+                        <Input 
+                          id="user-email" 
+                          type="email" 
+                          placeholder="juan.perez@ejemplo.com"
+                          value={newUser.email}
+                          onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                        />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="user-role">Rol</Label>
-                        <Select>
+                        <Label htmlFor="user-role">
+                          Rol <span className="text-red-500">*</span>
+                        </Label>
+                        <Select value={newUser.role} onValueChange={(value) => setNewUser({ ...newUser, role: value })}>
                           <SelectTrigger id="user-role">
                             <SelectValue placeholder="Selecciona un rol" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="superadmin">Superadmin</SelectItem>
-                            <SelectItem value="doctor">Doctor</SelectItem>
-                            <SelectItem value="secretaria">Secretaria</SelectItem>
-                            <SelectItem value="enfermero">Enfermero</SelectItem>
+                            <SelectItem value="admin">Administrador</SelectItem>
+                            <SelectItem value="medico">Médico</SelectItem>
+                            <SelectItem value="recepcionista">Recepcionista</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
-                      <Button className="w-full">Enviar Invitación</Button>
+                      <div className="grid gap-2">
+                        <Label htmlFor="user-phone">Teléfono (opcional)</Label>
+                        <Input 
+                          id="user-phone"
+                          placeholder="+54 11 1234-5678"
+                          value={newUser.phone}
+                          onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" onClick={() => {
+                        setNewUser({ name: "", email: "", role: "", phone: "" });
+                        setIsNewUserDialogOpen(false);
+                      }}>
+                        Cancelar
+                      </Button>
+                      <Button onClick={handleInviteUser} disabled={isSaving}>
+                        {isSaving ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Enviando...
+                          </>
+                        ) : (
+                          "Enviar Invitación"
+                        )}
+                      </Button>
                     </div>
                   </DialogContent>
                 </Dialog>
@@ -321,12 +705,12 @@ export default function ConfiguracionPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {usersData.map((user) => (
+                    {users.map((user) => (
                       <TableRow key={user.id}>
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium text-sm">
-                              {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                              {user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
                             </div>
                             <div>
                               <div className="font-medium">{user.name}</div>
@@ -334,6 +718,9 @@ export default function ConfiguracionPage() {
                                 {user.role === 'Superadmin' && 'Acceso total al sistema'}
                                 {user.role === 'Doctor' && 'Gestión de pacientes'}
                                 {user.role === 'Secretaria' && 'Gestión de turnos'}
+                                {user.role === 'admin' && 'Administrador del sistema'}
+                                {user.role === 'medico' && 'Gestión médica'}
+                                {user.role === 'recepcionista' && 'Recepción y turnos'}
                               </div>
                             </div>
                           </div>
@@ -346,7 +733,7 @@ export default function ConfiguracionPage() {
                         </TableCell>
                         <TableCell>
                           <Badge 
-                            variant={user.role === 'Superadmin' ? 'default' : 'secondary'}
+                            variant={user.role === 'Superadmin' || user.role === 'admin' ? 'default' : 'secondary'}
                             className="font-medium"
                           >
                             <Shield className="h-3 w-3 mr-1" />
@@ -355,10 +742,23 @@ export default function ConfiguracionPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8"
+                              onClick={() => {
+                                setEditingUser(user);
+                                setIsEditUserDialogOpen(true);
+                              }}
+                            >
                               <Edit2 className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-destructive"
+                              onClick={() => setUserToDelete(user.id)}
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
@@ -390,7 +790,8 @@ export default function ConfiguracionPage() {
                     DR
                   </div>
                   <div>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={handleUploadPhoto}>
+                      <Upload className="mr-2 h-4 w-4" />
                       Cambiar Foto
                     </Button>
                     <p className="text-xs text-muted-foreground mt-2">
@@ -433,7 +834,8 @@ export default function ConfiguracionPage() {
                         Última actualización hace 3 meses
                       </p>
                     </div>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={() => setIsChangePasswordDialogOpen(true)}>
+                      <Key className="mr-2 h-4 w-4" />
                       Cambiar
                     </Button>
                   </div>
@@ -449,7 +851,8 @@ export default function ConfiguracionPage() {
                     </div>
                     <Badge variant="outline">Inactivo</Badge>
                   </div>
-                  <Button variant="outline" size="sm" className="w-full">
+                  <Button variant="outline" size="sm" className="w-full" onClick={() => setIs2FADialogOpen(true)}>
+                    <ShieldCheck className="mr-2 h-4 w-4" />
                     Activar 2FA
                   </Button>
                 </div>
@@ -471,6 +874,310 @@ export default function ConfiguracionPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Dialog Editar Sala */}
+      <Dialog open={isEditRoomDialogOpen} onOpenChange={setIsEditRoomDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Sala</DialogTitle>
+            <DialogDescription>
+              Modifica la información de la sala.
+            </DialogDescription>
+          </DialogHeader>
+          {editingRoom && (
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-room-name">
+                  Nombre de la Sala <span className="text-red-500">*</span>
+                </Label>
+                <Input 
+                  id="edit-room-name" 
+                  value={editingRoom.name}
+                  onChange={(e) => setEditingRoom({ ...editingRoom, name: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-room-type">
+                  Tipo <span className="text-red-500">*</span>
+                </Label>
+                <Select value={editingRoom.type} onValueChange={(value) => setEditingRoom({ ...editingRoom, type: value })}>
+                  <SelectTrigger id="edit-room-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Consultorio">Consultorio</SelectItem>
+                    <SelectItem value="Procedimientos">Sala de Procedimientos</SelectItem>
+                    <SelectItem value="Laboratorio">Laboratorio</SelectItem>
+                    <SelectItem value="Urgencias">Sala de Urgencias</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-room-description">Descripción (opcional)</Label>
+                <Textarea 
+                  id="edit-room-description"
+                  rows={3}
+                  value={editingRoom.description || ""}
+                  onChange={(e) => setEditingRoom({ ...editingRoom, description: e.target.value })}
+                />
+              </div>
+            </div>
+          )}
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => {
+              setIsEditRoomDialogOpen(false);
+              setEditingRoom(null);
+            }}>
+              Cancelar
+            </Button>
+            <Button onClick={handleEditRoom} disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                "Guardar Cambios"
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* AlertDialog Eliminar Sala */}
+      <AlertDialog open={roomToDelete !== null} onOpenChange={(open) => !open && setRoomToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar sala?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. La sala será eliminada permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteRoom} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Dialog Editar Usuario */}
+      <Dialog open={isEditUserDialogOpen} onOpenChange={setIsEditUserDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Usuario</DialogTitle>
+            <DialogDescription>
+              Modifica la información del usuario.
+            </DialogDescription>
+          </DialogHeader>
+          {editingUser && (
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-user-name">
+                  Nombre Completo <span className="text-red-500">*</span>
+                </Label>
+                <Input 
+                  id="edit-user-name" 
+                  value={editingUser.name}
+                  onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-user-email">
+                  Email <span className="text-red-500">*</span>
+                </Label>
+                <Input 
+                  id="edit-user-email" 
+                  type="email"
+                  value={editingUser.email}
+                  onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-user-role">
+                  Rol <span className="text-red-500">*</span>
+                </Label>
+                <Select value={editingUser.role} onValueChange={(value) => setEditingUser({ ...editingUser, role: value })}>
+                  <SelectTrigger id="edit-user-role">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">Administrador</SelectItem>
+                    <SelectItem value="medico">Médico</SelectItem>
+                    <SelectItem value="recepcionista">Recepcionista</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-user-phone">Teléfono</Label>
+                <Input 
+                  id="edit-user-phone"
+                  value={editingUser.phone || ""}
+                  onChange={(e) => setEditingUser({ ...editingUser, phone: e.target.value })}
+                />
+              </div>
+            </div>
+          )}
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => {
+              setIsEditUserDialogOpen(false);
+              setEditingUser(null);
+            }}>
+              Cancelar
+            </Button>
+            <Button onClick={handleEditUser} disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                "Guardar Cambios"
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* AlertDialog Eliminar Usuario */}
+      <AlertDialog open={userToDelete !== null} onOpenChange={(open) => !open && setUserToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar usuario?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. El usuario perderá acceso al sistema inmediatamente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteUser} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Eliminar Usuario
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Dialog Cambiar Contraseña */}
+      <Dialog open={isChangePasswordDialogOpen} onOpenChange={setIsChangePasswordDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cambiar Contraseña</DialogTitle>
+            <DialogDescription>
+              Ingresa tu contraseña actual y luego la nueva contraseña.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="current-password">
+                Contraseña Actual <span className="text-red-500">*</span>
+              </Label>
+              <Input 
+                id="current-password" 
+                type="password"
+                value={passwordForm.current}
+                onChange={(e) => setPasswordForm({ ...passwordForm, current: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="new-password">
+                Nueva Contraseña <span className="text-red-500">*</span>
+              </Label>
+              <Input 
+                id="new-password" 
+                type="password"
+                value={passwordForm.new}
+                onChange={(e) => setPasswordForm({ ...passwordForm, new: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">Mínimo 8 caracteres</p>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="confirm-password">
+                Confirmar Nueva Contraseña <span className="text-red-500">*</span>
+              </Label>
+              <Input 
+                id="confirm-password" 
+                type="password"
+                value={passwordForm.confirm}
+                onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => {
+              setPasswordForm({ current: "", new: "", confirm: "" });
+              setIsChangePasswordDialogOpen(false);
+            }}>
+              Cancelar
+            </Button>
+            <Button onClick={handleChangePassword} disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Cambiando...
+                </>
+              ) : (
+                "Cambiar Contraseña"
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog 2FA */}
+      <Dialog open={is2FADialogOpen} onOpenChange={setIs2FADialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Autenticación de Dos Factores</DialogTitle>
+            <DialogDescription>
+              Escanea el código QR con tu aplicación de autenticación (Google Authenticator, Authy, etc.)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex justify-center">
+              <div className="h-48 w-48 rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/50">
+                <div className="text-center text-muted-foreground">
+                  <ShieldCheck className="h-12 w-12 mx-auto mb-2" />
+                  <p className="text-xs">Código QR Mockup</p>
+                </div>
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label>Código Manual (alternativo)</Label>
+              <div className="flex gap-2">
+                <Input value="XXXX XXXX XXXX XXXX" readOnly className="font-mono" />
+                <Button variant="outline" size="icon">
+                  <Camera className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="2fa-code">Código de Verificación</Label>
+              <Input 
+                id="2fa-code" 
+                placeholder="000000"
+                maxLength={6}
+                className="font-mono text-center text-lg tracking-widest"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setIs2FADialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleEnable2FA} disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Activando...
+                </>
+              ) : (
+                "Activar 2FA"
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

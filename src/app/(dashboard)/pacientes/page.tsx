@@ -22,7 +22,8 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
-  UserCircle
+  UserCircle,
+  Loader2
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -32,11 +33,31 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import patientsData from "@/lib/data/patients.json";
+import insuranceData from "@/lib/data/insurance-providers.json";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { toast } from "sonner";
 
 interface Patient {
   id: number;
@@ -57,7 +78,97 @@ export default function PacientesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isNewPatientDialogOpen, setIsNewPatientDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const itemsPerPage = 10;
+
+  // Form state
+  const [newPatient, setNewPatient] = useState({
+    firstName: "",
+    lastName: "",
+    dni: "",
+    birthDate: "",
+    email: "",
+    phone: "",
+    bloodType: "",
+    insuranceProvider: "",
+    insuranceNumber: "",
+    address: "",
+    allergies: "",
+    medicalBackground: "",
+  });
+
+  const calculateAge = (birthDate: string) => {
+    if (!birthDate) return "";
+    const today = new Date();
+    const birth = new Date(birthDate);
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age > 0 ? `${age} años` : "";
+  };
+
+  const handleCreatePatient = () => {
+    // Validación básica
+    if (!newPatient.firstName || !newPatient.lastName || !newPatient.dni) {
+      toast.error("Error de validación", {
+        description: "Por favor completa los campos obligatorios (Nombre, Apellido, DNI)",
+      });
+      return;
+    }
+
+    // Validar DNI (solo números, 7-8 dígitos)
+    if (!/^\d{7,8}$/.test(newPatient.dni)) {
+      toast.error("DNI inválido", {
+        description: "El DNI debe contener entre 7 y 8 dígitos",
+      });
+      return;
+    }
+
+    // Validar email si está presente
+    if (newPatient.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newPatient.email)) {
+      toast.error("Email inválido", {
+        description: "Por favor ingresa un email válido",
+      });
+      return;
+    }
+
+    // Validar teléfono si está presente
+    if (newPatient.phone && !/^[0-9\s\-\+\(\)]+$/.test(newPatient.phone)) {
+      toast.error("Teléfono inválido", {
+        description: "El teléfono solo puede contener números y símbolos (+, -, espacios, paréntesis)",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    
+    // Simular creación
+    setTimeout(() => {
+      setIsLoading(false);
+      toast.success("Paciente creado exitosamente", {
+        description: `${newPatient.firstName} ${newPatient.lastName} fue agregado al sistema`,
+      });
+      setIsNewPatientDialogOpen(false);
+      // Reset form
+      setNewPatient({
+        firstName: "",
+        lastName: "",
+        dni: "",
+        birthDate: "",
+        email: "",
+        phone: "",
+        bloodType: "",
+        insuranceProvider: "",
+        insuranceNumber: "",
+        address: "",
+        allergies: "",
+        medicalBackground: "",
+      });
+    }, 1000);
+  };
 
   // Filtrar y buscar
   const filteredPatients = useMemo(() => {
@@ -120,9 +231,243 @@ export default function PacientesPage() {
             {filteredPatients.length} pacientes registrados
           </p>
         </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" /> Nuevo Paciente
-        </Button>
+        <Dialog open={isNewPatientDialogOpen} onOpenChange={setIsNewPatientDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" /> Nuevo Paciente
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Nuevo Paciente</DialogTitle>
+              <DialogDescription>
+                Completa los datos del paciente. Los campos marcados con * son obligatorios.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="grid gap-6 py-4">
+              {/* Datos Personales */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                  Datos Personales
+                </h3>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName">
+                      Nombre <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="firstName"
+                      placeholder="Juan"
+                      value={newPatient.firstName}
+                      onChange={(e) => setNewPatient({ ...newPatient, firstName: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">
+                      Apellido <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="lastName"
+                      placeholder="Pérez"
+                      value={newPatient.lastName}
+                      onChange={(e) => setNewPatient({ ...newPatient, lastName: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="dni">
+                      DNI <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="dni"
+                      placeholder="12345678"
+                      value={newPatient.dni}
+                      onChange={(e) => setNewPatient({ ...newPatient, dni: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="birthDate">Fecha de Nacimiento</Label>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button className="text-muted-foreground hover:text-foreground">
+                            <UserCircle className="h-4 w-4" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>La edad se calculará automáticamente</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <Input
+                      id="birthDate"
+                      type="date"
+                      value={newPatient.birthDate}
+                      onChange={(e) => setNewPatient({ ...newPatient, birthDate: e.target.value })}
+                    />
+                    {newPatient.birthDate && (
+                      <p className="text-sm text-muted-foreground">
+                        Edad: {calculateAge(newPatient.birthDate)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Contacto */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                  Contacto
+                </h3>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="juan.perez@example.com"
+                      value={newPatient.email}
+                      onChange={(e) => setNewPatient({ ...newPatient, email: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Teléfono</Label>
+                    <Input
+                      id="phone"
+                      placeholder="+54 11 1234-5678"
+                      value={newPatient.phone}
+                      onChange={(e) => setNewPatient({ ...newPatient, phone: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="address">Dirección</Label>
+                    <Input
+                      id="address"
+                      placeholder="Av. Corrientes 1234, CABA"
+                      value={newPatient.address}
+                      onChange={(e) => setNewPatient({ ...newPatient, address: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Datos Médicos */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                  Datos Médicos
+                </h3>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="bloodType">Tipo de Sangre</Label>
+                    <Select
+                      value={newPatient.bloodType}
+                      onValueChange={(value) => setNewPatient({ ...newPatient, bloodType: value })}
+                    >
+                      <SelectTrigger id="bloodType">
+                        <SelectValue placeholder="Seleccionar" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="A+">A+</SelectItem>
+                        <SelectItem value="A-">A-</SelectItem>
+                        <SelectItem value="B+">B+</SelectItem>
+                        <SelectItem value="B-">B-</SelectItem>
+                        <SelectItem value="AB+">AB+</SelectItem>
+                        <SelectItem value="AB-">AB-</SelectItem>
+                        <SelectItem value="O+">O+</SelectItem>
+                        <SelectItem value="O-">O-</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="allergies">Alergias</Label>
+                    <Input
+                      id="allergies"
+                      placeholder="Penicilina, Polen, etc."
+                      value={newPatient.allergies}
+                      onChange={(e) => setNewPatient({ ...newPatient, allergies: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Obra Social */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                  Obra Social / Prepaga
+                </h3>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="insuranceProvider">Obra Social</Label>
+                    <Select
+                      value={newPatient.insuranceProvider}
+                      onValueChange={(value) => setNewPatient({ ...newPatient, insuranceProvider: value })}
+                    >
+                      <SelectTrigger id="insuranceProvider">
+                        <SelectValue placeholder="Seleccionar" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {insuranceData.map((insurance) => (
+                          <SelectItem key={insurance.id} value={insurance.name}>
+                            {insurance.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="insuranceNumber">Número de Afiliado</Label>
+                    <Input
+                      id="insuranceNumber"
+                      placeholder="123456789"
+                      value={newPatient.insuranceNumber}
+                      onChange={(e) => setNewPatient({ ...newPatient, insuranceNumber: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Antecedentes */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                  Antecedentes Médicos
+                </h3>
+                <div className="space-y-2">
+                  <Label htmlFor="medicalBackground">Observaciones</Label>
+                  <Textarea
+                    id="medicalBackground"
+                    placeholder="HTA, DBT, cirugías previas, medicación actual, etc."
+                    rows={4}
+                    value={newPatient.medicalBackground}
+                    onChange={(e) => setNewPatient({ ...newPatient, medicalBackground: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setIsNewPatientDialogOpen(false)}
+                disabled={isLoading}
+              >
+                Cancelar
+              </Button>
+              <Button onClick={handleCreatePatient} disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Guardando...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Crear Paciente
+                  </>
+                )}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
       
       {/* Búsqueda y acciones */}

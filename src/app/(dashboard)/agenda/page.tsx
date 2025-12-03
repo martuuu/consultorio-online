@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Calendar, dateFnsLocalizer, Views } from "react-big-calendar";
-import { format, parse, startOfWeek, getDay } from "date-fns";
+import { Calendar as BigCalendar, dateFnsLocalizer, Views } from "react-big-calendar";
+import { format, parse, startOfWeek, getDay, addMinutes, setHours, setMinutes } from "date-fns";
 import { es } from "date-fns/locale";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "./calendar-styles.css";
@@ -11,7 +11,7 @@ import roomsData from "@/lib/data/room.json";
 import waitingListData from "@/lib/data/waiting-list.json";
 import timeBlocksData from "@/lib/data/time-blocks.json";
 import { Button } from "@/components/ui/button";
-import { Plus, Filter, Calendar as CalendarIcon, Clock, Users, Mail, Phone, FileText, MapPin, Search, Download, AlertCircle, Lightbulb } from "lucide-react";
+import { Plus, Filter, Calendar as CalendarIcon, Clock, Users, Mail, Phone, FileText, MapPin, Search, Download, AlertCircle, Lightbulb, CheckCircle2, XCircle, CalendarClock, MessageSquare, AlertTriangle, Check, X, RefreshCw, Send } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -29,9 +30,19 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComp } from "@/components/ui/calendar";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { toast } from "sonner";
 
 const locales = {
   "es": es,
@@ -64,10 +75,16 @@ export default function AgendaPage() {
   const [isTimeBlocksDialogOpen, setIsTimeBlocksDialogOpen] = useState(false);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [isFindSlotDialogOpen, setIsFindSlotDialogOpen] = useState(false);
+  const [isRescheduleDialogOpen, setIsRescheduleDialogOpen] = useState(false);
+  const [isSendReminderDialogOpen, setIsSendReminderDialogOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<number | string | null>(null);
   const [selectedRoom, setSelectedRoom] = useState<string>("all");
   const [currentView, setCurrentView] = useState<CalendarView>("week");
+  const [rescheduleDate, setRescheduleDate] = useState<Date | undefined>(new Date());
+  const [rescheduleTime, setRescheduleTime] = useState<string>("09:00");
+  const [isLoading, setIsLoading] = useState(false);
 
   // Transform string dates to Date objects - usando useMemo para evitar recalcular
   const events = useMemo<Event[]>(() => {
@@ -98,7 +115,7 @@ export default function AgendaPage() {
       case 'absent':
         return <Badge className="bg-red-600">Ausente</Badge>;
       case 'confirmed':
-        return <Badge>Confirmado</Badge>;
+        return <Badge className="bg-green-600">Confirmado</Badge>;
       case 'pending':
         return <Badge variant="secondary">Pendiente</Badge>;
       case 'cancelled':
@@ -106,6 +123,126 @@ export default function AgendaPage() {
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
+  };
+
+  // Acciones de turnos con toasts
+  const handleConfirmAppointment = (id: number | string, patientName: string) => {
+    setIsLoading(true);
+    toast.loading("Confirmando turno...", { id: "confirm" });
+    
+    setTimeout(() => {
+      setIsLoading(false);
+      toast.success(`Turno de ${patientName} confirmado exitosamente`, { id: "confirm" });
+      setIsEventDialogOpen(false);
+    }, 1000);
+  };
+
+  const handleCancelAppointment = (id: number | string, patientName: string) => {
+    toast.warning(`¿Cancelar turno de ${patientName}?`, {
+      description: "Esta acción no se puede deshacer",
+      action: {
+        label: "Sí, cancelar",
+        onClick: () => {
+          setIsLoading(true);
+          toast.loading("Cancelando turno...", { id: "cancel" });
+          
+          setTimeout(() => {
+            setIsLoading(false);
+            toast.success("Turno cancelado", { id: "cancel" });
+            setIsEventDialogOpen(false);
+          }, 1000);
+        },
+      },
+      cancel: {
+        label: "No",
+        onClick: () => {},
+      },
+    });
+  };
+
+  const handleRescheduleAppointment = () => {
+    if (!rescheduleDate || !rescheduleTime) {
+      toast.error("Selecciona fecha y hora");
+      return;
+    }
+
+    setIsLoading(true);
+    toast.loading("Reprogramando turno...", { id: "reschedule" });
+    
+    setTimeout(() => {
+      setIsLoading(false);
+      toast.success(
+        `Turno reprogramado para ${format(rescheduleDate, "dd/MM/yyyy")} a las ${rescheduleTime}`,
+        { id: "reschedule" }
+      );
+      setIsRescheduleDialogOpen(false);
+      setIsEventDialogOpen(false);
+    }, 1000);
+  };
+
+  const handleSendReminder = (channel: "whatsapp" | "sms" | "email", patientName: string) => {
+    toast.loading(`Enviando recordatorio por ${channel.toUpperCase()}...`, { id: "reminder" });
+    
+    setTimeout(() => {
+      toast.success(
+        `Recordatorio enviado a ${patientName} por ${channel.toUpperCase()}`,
+        { id: "reminder", duration: 3000 }
+      );
+      setIsSendReminderDialogOpen(false);
+    }, 1500);
+  };
+
+  const handleMarkAsCompleted = (id: number | string, patientName: string) => {
+    setIsLoading(true);
+    toast.loading("Marcando como completado...", { id: "complete" });
+    
+    setTimeout(() => {
+      setIsLoading(false);
+      toast.success(`Turno de ${patientName} marcado como completado`, { id: "complete" });
+      setIsEventDialogOpen(false);
+    }, 1000);
+  };
+
+  const handleMarkAsAbsent = (id: number | string, patientName: string) => {
+    toast.warning(`¿Marcar a ${patientName} como ausente?`, {
+      description: "Esto afectará las estadísticas de ausentismo",
+      action: {
+        label: "Confirmar",
+        onClick: () => {
+          toast.info(`${patientName} marcado como ausente`);
+          setIsEventDialogOpen(false);
+        },
+      },
+    });
+  };
+
+  const findNextAvailableSlot = (duration: number = 30) => {
+    toast.loading("Buscando próximo hueco libre...", { id: "find-slot" });
+    
+    setTimeout(() => {
+      // Mock: encontrar próximo slot
+      const mockSlot = {
+        date: "Mañana",
+        time: "10:30",
+        duration: 30,
+        room: "Consultorio 1",
+      };
+      
+      toast.success(
+        `Próximo hueco libre: ${mockSlot.date} a las ${mockSlot.time} en ${mockSlot.room}`,
+        { id: "find-slot", duration: 5000 }
+      );
+      setIsFindSlotDialogOpen(false);
+    }, 1500);
+  };
+
+  const handleExportCalendar = () => {
+    toast.loading("Generando exportación...", { id: "export" });
+    
+    setTimeout(() => {
+      toast.success("Calendario exportado a Excel", { id: "export" });
+      setIsExportDialogOpen(false);
+    }, 1500);
   };
 
   const handleSelectSlot = ({ start, end }: { start: Date; end: Date }) => {
@@ -140,18 +277,23 @@ export default function AgendaPage() {
               {format(new Date(), "EEEE d 'de' MMMM, yyyy", { locale: es })}
             </p>
           </div>
-          <div className="flex gap-2">
-            {/* Buscar Próximo Hueco - Mockup */}
-            <Dialog open={isFindSlotDialogOpen} onOpenChange={setIsFindSlotDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="group">
-                  <Search className="mr-2 h-4 w-4" />
-                  Buscar Hueco
-                  <span className="ml-2 text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
-                    (En desarrollo)
-                  </span>
-                </Button>
-              </DialogTrigger>
+          <TooltipProvider>
+            <div className="flex gap-2">
+              {/* Buscar Próximo Hueco - Mockup */}
+              <Dialog open={isFindSlotDialogOpen} onOpenChange={setIsFindSlotDialogOpen}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="group">
+                        <Search className="mr-2 h-4 w-4" />
+                        Buscar Hueco
+                      </Button>
+                    </DialogTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Encuentra el próximo espacio disponible en la agenda</p>
+                  </TooltipContent>
+                </Tooltip>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Buscador de Próximo Hueco Libre</DialogTitle>
@@ -168,12 +310,19 @@ export default function AgendaPage() {
 
             {/* Exportar - Mockup */}
             <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline">
-                  <Download className="mr-2 h-4 w-4" />
-                  Exportar
-                </Button>
-              </DialogTrigger>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DialogTrigger asChild>
+                    <Button variant="outline">
+                      <Download className="mr-2 h-4 w-4" />
+                      Exportar
+                    </Button>
+                  </DialogTrigger>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Exportar agenda a Excel o CSV</p>
+                </TooltipContent>
+              </Tooltip>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Exportar Agenda</DialogTitle>
@@ -182,11 +331,22 @@ export default function AgendaPage() {
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
-                  <Button className="w-full" variant="outline">
+                  <Button 
+                    className="w-full" 
+                    variant="outline"
+                    onClick={handleExportCalendar}
+                    disabled={isLoading}
+                  >
                     <Download className="mr-2 h-4 w-4" />
                     Descargar como Excel (.xlsx)
                   </Button>
-                  <Button className="w-full" variant="outline">
+                  <Button 
+                    className="w-full" 
+                    variant="outline"
+                    onClick={() => {
+                      toast.info("Exportación a CSV próximamente disponible");
+                    }}
+                  >
                     <Download className="mr-2 h-4 w-4" />
                     Descargar como CSV
                   </Button>
@@ -196,12 +356,19 @@ export default function AgendaPage() {
 
             {/* Bloqueos */}
             <Dialog open={isTimeBlocksDialogOpen} onOpenChange={setIsTimeBlocksDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline">
-                  <AlertCircle className="mr-2 h-4 w-4" />
-                  Bloqueos
-                </Button>
-              </DialogTrigger>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DialogTrigger asChild>
+                    <Button variant="outline">
+                      <AlertCircle className="mr-2 h-4 w-4" />
+                      Bloqueos
+                    </Button>
+                  </DialogTrigger>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Gestionar bloqueos de agenda y vacaciones</p>
+                </TooltipContent>
+              </Tooltip>
               <DialogContent className="max-w-2xl">
                 <DialogHeader>
                   <DialogTitle>Gestión de Bloqueos</DialogTitle>
@@ -244,11 +411,18 @@ export default function AgendaPage() {
             </Dialog>
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button size="lg" onClick={() => setSelectedSlot(null)}>
-                  <Plus className="mr-2 h-4 w-4" /> Nuevo Turno
-                </Button>
-              </DialogTrigger>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DialogTrigger asChild>
+                    <Button size="lg" onClick={() => setSelectedSlot(null)}>
+                      <Plus className="mr-2 h-4 w-4" /> Nuevo Turno
+                    </Button>
+                  </DialogTrigger>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Crear un nuevo turno en la agenda</p>
+                </TooltipContent>
+              </Tooltip>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>Agendar Nuevo Turno</DialogTitle>
@@ -307,7 +481,8 @@ export default function AgendaPage() {
             </div>
           </DialogContent>
         </Dialog>
-          </div>
+            </div>
+          </TooltipProvider>
         </div>
 
         {/* Tarjetas de estadísticas */}
@@ -406,7 +581,7 @@ export default function AgendaPage() {
       {/* Calendario */}
       <Card className="flex-1">
         <CardContent className="p-6 h-full">
-          <Calendar
+          <BigCalendar
             localizer={localizer}
             events={events}
             startAccessor="start"
@@ -520,6 +695,87 @@ export default function AgendaPage() {
                 </div>
               </div>
 
+              <Separator />
+
+              <div>
+                <h3 className="font-semibold mb-3">Acciones Rápidas</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {selectedEvent.status === 'pending' && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="justify-start"
+                      onClick={() => handleConfirmAppointment(selectedEvent.id, selectedEvent.title)}
+                      disabled={isLoading}
+                    >
+                      <Check className="h-4 w-4 mr-2" />
+                      Confirmar Turno
+                    </Button>
+                  )}
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="justify-start"
+                    onClick={() => {
+                      setIsRescheduleDialogOpen(true);
+                      setSelectedAppointmentId(selectedEvent.id);
+                    }}
+                    disabled={isLoading}
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Reprogramar
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="justify-start"
+                    onClick={() => {
+                      setIsSendReminderDialogOpen(true);
+                      setSelectedAppointmentId(selectedEvent.id);
+                    }}
+                    disabled={isLoading}
+                  >
+                    <Send className="h-4 w-4 mr-2" />
+                    Enviar Recordatorio
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="justify-start"
+                    onClick={() => handleMarkAsCompleted(selectedEvent.id, selectedEvent.title)}
+                    disabled={isLoading}
+                  >
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    Marcar Atendido
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="justify-start text-muted-foreground"
+                    onClick={() => handleMarkAsAbsent(selectedEvent.id, selectedEvent.title)}
+                    disabled={isLoading}
+                  >
+                    <XCircle className="h-4 w-4 mr-2" />
+                    Marcar Ausente
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="justify-start text-destructive hover:text-destructive"
+                    onClick={() => handleCancelAppointment(selectedEvent.id, selectedEvent.title)}
+                    disabled={isLoading}
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Cancelar Turno
+                  </Button>
+                </div>
+              </div>
+
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setIsEventDialogOpen(false)}>
                   Cerrar
@@ -534,6 +790,169 @@ export default function AgendaPage() {
             </div>
           )}
         </DialogContent>
+        </Dialog>
+
+        {/* Dialog de Reprogramar */}
+        <Dialog open={isRescheduleDialogOpen} onOpenChange={setIsRescheduleDialogOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Reprogramar Turno</DialogTitle>
+              <DialogDescription>
+                Selecciona la nueva fecha y hora para el turno
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Nueva Fecha</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {rescheduleDate ? format(rescheduleDate, "PPP", { locale: es }) : "Seleccionar fecha"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComp
+                      mode="single"
+                      selected={rescheduleDate}
+                      onSelect={setRescheduleDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="reschedule-time">Nueva Hora</Label>
+                <Select value={rescheduleTime} onValueChange={setRescheduleTime}>
+                  <SelectTrigger id="reschedule-time">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 20 }, (_, i) => {
+                      const hour = Math.floor(i / 2) + 8;
+                      const minute = i % 2 === 0 ? "00" : "30";
+                      return `${hour.toString().padStart(2, "0")}:${minute}`;
+                    }).map((time) => (
+                      <SelectItem key={time} value={time}>
+                        {time}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-lg border border-blue-200 dark:border-blue-900">
+                <p className="text-sm text-blue-800 dark:text-blue-200 flex items-center gap-2">
+                  <Lightbulb className="h-4 w-4" />
+                  El paciente recibirá una notificación automática con la nueva fecha
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsRescheduleDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleRescheduleAppointment} disabled={isLoading}>
+                Confirmar Reprogramación
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog de Enviar Recordatorio */}
+        <Dialog open={isSendReminderDialogOpen} onOpenChange={setIsSendReminderDialogOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Enviar Recordatorio</DialogTitle>
+              <DialogDescription>
+                Selecciona el canal por el cual enviar el recordatorio al paciente
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+              {selectedEvent && (
+                <>
+                  <div className="bg-muted/30 p-4 rounded-lg space-y-2">
+                    <div>
+                      <span className="text-xs font-medium text-muted-foreground uppercase">Paciente</span>
+                      <p className="font-medium">{selectedEvent.title}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs font-medium text-muted-foreground uppercase">Turno</span>
+                      <p className="text-sm">
+                        {format(selectedEvent.start, "EEEE d 'de' MMMM, yyyy 'a las' HH:mm", { locale: es })}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Canal de Envío</Label>
+                    <div className="grid gap-2">
+                      <Button
+                        variant="outline"
+                        className="justify-start h-auto py-3"
+                        onClick={() => {
+                          handleSendReminder("whatsapp", selectedEvent.title);
+                          setIsSendReminderDialogOpen(false);
+                        }}
+                        disabled={isLoading}
+                      >
+                        <MessageSquare className="h-5 w-5 mr-3 text-green-600" />
+                        <div className="text-left">
+                          <p className="font-medium">WhatsApp</p>
+                          <p className="text-xs text-muted-foreground">+54 11 1234 5678</p>
+                        </div>
+                      </Button>
+                      
+                      <Button
+                        variant="outline"
+                        className="justify-start h-auto py-3"
+                        onClick={() => {
+                          handleSendReminder("sms", selectedEvent.title);
+                          setIsSendReminderDialogOpen(false);
+                        }}
+                        disabled={isLoading}
+                      >
+                        <Phone className="h-5 w-5 mr-3 text-blue-600" />
+                        <div className="text-left">
+                          <p className="font-medium">SMS</p>
+                          <p className="text-xs text-muted-foreground">+54 11 1234 5678</p>
+                        </div>
+                      </Button>
+                      
+                      <Button
+                        variant="outline"
+                        className="justify-start h-auto py-3"
+                        onClick={() => {
+                          handleSendReminder("email", selectedEvent.title);
+                          setIsSendReminderDialogOpen(false);
+                        }}
+                        disabled={isLoading}
+                      >
+                        <Mail className="h-5 w-5 mr-3 text-purple-600" />
+                        <div className="text-left">
+                          <p className="font-medium">Email</p>
+                          <p className="text-xs text-muted-foreground">paciente@email.com</p>
+                        </div>
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsSendReminderDialogOpen(false)}>
+                Cancelar
+              </Button>
+            </div>
+          </DialogContent>
         </Dialog>
       </div>
 

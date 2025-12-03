@@ -9,6 +9,7 @@ export type ModuleKey =
   | "agenda"
   | "turnos"
   | "pacientes"
+  | "ambulatorios"
   | "configuracion"
   // PRO
   | "recetas"
@@ -53,7 +54,7 @@ export interface FeatureFlag {
 
 // Plan definitions for pricing
 export const PLAN_MODULES: Record<PlanTier, ModuleKey[]> = {
-  BASE: ["agenda", "turnos", "pacientes", "configuracion"],
+  BASE: ["agenda", "turnos", "pacientes", "ambulatorios", "configuracion"],
   PRO: ["recetas", "facturacion", "reportes"],
   PREMIUM: ["comunicaciones", "recordatorios", "automatizaciones"],
   ENTERPRISE: ["auditoria", "telemedicina", "cumplimiento", "portal-pacientes"],

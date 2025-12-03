@@ -1,0 +1,134 @@
+[
+  {
+    "id": 1,
+    "title": "Consulta - Juan Perez",
+    "start": "2025-12-02T10:00:00",
+    "end": "2025-12-02T10:30:00",
+    "resourceId": 1,
+    "patientId": 1,
+    "status": "in-consultation",
+    "reason": "Control de rutina",
+    "notes": "Paciente regular"
+  },
+  {
+    "id": 2,
+    "title": "Control - Maria Garcia",
+    "start": "2025-12-02T11:00:00",
+    "end": "2025-12-02T11:30:00",
+    "resourceId": 1,
+    "patientId": 2,
+    "status": "waiting",
+    "reason": "Chequeo anual",
+    "notes": "Requiere confirmación telefónica"
+  },
+  {
+    "id": 3,
+    "title": "Urgencia - Carlos Lopez",
+    "start": "2025-12-03T09:00:00",
+    "end": "2025-12-03T09:45:00",
+    "resourceId": 2,
+    "patientId": 3,
+    "status": "completed",
+    "reason": "Dolor de espalda",
+    "notes": "Paciente con historial de lumbalgia"
+  },
+  {
+    "id": 4,
+    "title": "Consulta - Laura Martinez",
+    "start": "2025-12-02T14:00:00",
+    "end": "2025-12-02T14:30:00",
+    "resourceId": 1,
+    "patientId": 4,
+    "status": "confirmed",
+    "reason": "Control de colesterol",
+    "notes": "Traer resultados de análisis"
+  },
+  {
+    "id": 5,
+    "title": "Primera Consulta - Roberto Fernandez",
+    "start": "2025-12-02T15:00:00",
+    "end": "2025-12-02T15:30:00",
+    "resourceId": 1,
+    "patientId": 5,
+    "status": "pending",
+    "reason": "Consulta inicial",
+    "notes": "Paciente nuevo, requiere historia clínica completa"
+  },
+  {
+    "id": 6,
+    "title": "Control - Sofia Rodriguez",
+    "start": "2025-12-02T16:00:00",
+    "end": "2025-12-02T16:30:00",
+    "resourceId": 3,
+    "patientId": 6,
+    "status": "confirmed",
+    "reason": "Control de tiroides",
+    "notes": "Medicación actual: Levotiroxina"
+  },
+  {
+    "id": 7,
+    "title": "Urgencia - Diego Sanchez",
+    "start": "2025-12-03T08:00:00",
+    "end": "2025-12-03T08:30:00",
+    "resourceId": 1,
+    "patientId": 7,
+    "status": "confirmed",
+    "reason": "Crisis alérgica",
+    "notes": "Paciente con rinitis alérgica severa"
+  },
+  {
+    "id": 8,
+    "title": "Consulta - Valentina Gomez",
+    "start": "2025-12-03T10:00:00",
+    "end": "2025-12-03T10:30:00",
+    "resourceId": 1,
+    "patientId": 8,
+    "status": "absent",
+    "reason": "Chequeo preventivo",
+    "notes": "Paciente no se presentó"
+  },
+  {
+    "id": 9,
+    "title": "Control - Fernando Diaz",
+    "start": "2025-12-03T11:00:00",
+    "end": "2025-12-03T11:30:00",
+    "resourceId": 1,
+    "patientId": 9,
+    "status": "confirmed",
+    "reason": "Control de presión arterial",
+    "notes": "Medicación actual: Enalapril 10mg"
+  },
+  {
+    "id": 10,
+    "title": "Consulta - Camila Torres",
+    "start": "2025-12-04T09:00:00",
+    "end": "2025-12-04T09:30:00",
+    "resourceId": 1,
+    "patientId": 10,
+    "status": "pending",
+    "reason": "Migraña recurrente",
+    "notes": "Requiere ajuste de medicación"
+  },
+  {
+    "id": 11,
+    "title": "Estudio - Juan Perez",
+    "start": "2025-12-04T10:00:00",
+    "end": "2025-12-04T10:45:00",
+    "resourceId": 2,
+    "patientId": 1,
+    "status": "confirmed",
+    "reason": "Rayos X de tórax",
+    "notes": "Orden médica adjunta"
+  },
+  {
+    "id": 12,
+    "title": "Control - Maria Garcia",
+    "start": "2025-12-04T14:00:00",
+    "end": "2025-12-04T14:30:00",
+    "resourceId": 1,
+    "patientId": 2,
+    "status": "confirmed",
+    "reason": "Seguimiento post-operatorio",
+    "notes": "Revisar cicatrización"
+  }
+]

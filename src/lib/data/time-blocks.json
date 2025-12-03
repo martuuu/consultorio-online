@@ -1,0 +1,33 @@
+[
+  {
+    "id": 1,
+    "type": "vacation",
+    "title": "Vacaciones de Verano",
+    "startDate": "2025-12-20",
+    "endDate": "2025-12-31",
+    "recurring": false,
+    "doctor": "Dr. Navarro",
+    "notes": "Vacaciones anuales"
+  },
+  {
+    "id": 2,
+    "type": "recurring",
+    "title": "Bloqueo Jueves Tarde",
+    "startTime": "14:00",
+    "endTime": "16:00",
+    "dayOfWeek": 4,
+    "recurring": true,
+    "doctor": "Dr. Navarro",
+    "notes": "Reunión administrativa semanal"
+  },
+  {
+    "id": 3,
+    "type": "event",
+    "title": "Congreso Médico",
+    "startDate": "2025-12-10",
+    "endDate": "2025-12-12",
+    "recurring": false,
+    "doctor": "Dr. Navarro",
+    "notes": "Congreso Nacional de Medicina Interna"
+  }
+]

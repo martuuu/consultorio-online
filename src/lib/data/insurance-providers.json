@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "name": "OSDE",
+    "type": "Prepaga"
+  },
+  {
+    "id": 2,
+    "name": "Swiss Medical",
+    "type": "Prepaga"
+  },
+  {
+    "id": 3,
+    "name": "Galeno",
+    "type": "Prepaga"
+  },
+  {
+    "id": 4,
+    "name": "IOMA",
+    "type": "Obra Social"
+  },
+  {
+    "id": 5,
+    "name": "PAMI",
+    "type": "Obra Social"
+  },
+  {
+    "id": 6,
+    "name": "Particular",
+    "type": "Particular"
+  },
+  {
+    "id": 7,
+    "name": "Medifé",
+    "type": "Prepaga"
+  },
+  {
+    "id": 8,
+    "name": "Federada Salud",
+    "type": "Obra Social"
+  }
+]

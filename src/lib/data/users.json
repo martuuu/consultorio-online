@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1,
+    "name": "Dr. Martín Navarro",
+    "email": "martin@consultorio.com",
+    "role": "Superadmin"
+  },
+  {
+    "id": 2,
+    "name": "Dra. Ana Lopez",
+    "email": "ana@consultorio.com",
+    "role": "Medico"
+  },
+  {
+    "id": 3,
+    "name": "Clara Secretaria",
+    "email": "clara@consultorio.com",
+    "role": "Administrador"
+  }
+]

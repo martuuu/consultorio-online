@@ -1,0 +1,77 @@
+[
+  {
+    "code": "J00",
+    "description": "Rinofaringitis aguda (resfriado común)",
+    "category": "Enfermedades respiratorias"
+  },
+  {
+    "code": "J06.9",
+    "description": "Infección aguda de las vías respiratorias superiores",
+    "category": "Enfermedades respiratorias"
+  },
+  {
+    "code": "J11.1",
+    "description": "Gripe con otras manifestaciones respiratorias",
+    "category": "Enfermedades respiratorias"
+  },
+  {
+    "code": "I10",
+    "description": "Hipertensión esencial (primaria)",
+    "category": "Enfermedades cardiovasculares"
+  },
+  {
+    "code": "E11.9",
+    "description": "Diabetes mellitus tipo 2 sin complicaciones",
+    "category": "Enfermedades endocrinas"
+  },
+  {
+    "code": "M54.5",
+    "description": "Dolor lumbar bajo",
+    "category": "Enfermedades musculoesqueléticas"
+  },
+  {
+    "code": "R10.4",
+    "description": "Dolor abdominal",
+    "category": "Síntomas y signos"
+  },
+  {
+    "code": "Z00.0",
+    "description": "Examen médico general",
+    "category": "Control de salud"
+  },
+  {
+    "code": "Z76.0",
+    "description": "Emisión de receta médica",
+    "category": "Control de salud"
+  },
+  {
+    "code": "G43.9",
+    "description": "Migraña",
+    "category": "Enfermedades del sistema nervioso"
+  },
+  {
+    "code": "K21.9",
+    "description": "Enfermedad por reflujo gastroesofágico",
+    "category": "Enfermedades digestivas"
+  },
+  {
+    "code": "E78.5",
+    "description": "Hiperlipidemia",
+    "category": "Enfermedades endocrinas"
+  },
+  {
+    "code": "J30.4",
+    "description": "Rinitis alérgica",
+    "category": "Enfermedades respiratorias"
+  },
+  {
+    "code": "E03.9",
+    "description": "Hipotiroidismo",
+    "category": "Enfermedades endocrinas"
+  },
+  {
+    "code": "F41.9",
+    "description": "Trastorno de ansiedad",
+    "category": "Salud mental"
+  }
+]

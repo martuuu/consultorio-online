@@ -1,0 +1,17 @@
+[
+  {
+    "id": 1,
+    "name": "Consultorio 1",
+    "type": "General"
+  },
+  {
+    "id": 2,
+    "name": "Sala de Rayos X",
+    "type": "Estudios"
+  },
+  {
+    "id": 3,
+    "name": "Consultorio 2",
+    "type": "Pediatría"
+  }
+]

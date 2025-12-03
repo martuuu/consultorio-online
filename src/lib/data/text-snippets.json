@@ -1,0 +1,32 @@
+[
+  {
+    "trigger": "/gripe",
+    "label": "Cuadro gripal",
+    "content": "Paciente presenta cuadro gripal caracterizado por: fiebre, malestar general, mialgias, odinofagia y rinorrea. Se indica reposo domiciliario, hidratación abundante, paracetamol 500mg c/8hs por 5 días. Control en 72hs si no mejora o ante empeoramiento de síntomas."
+  },
+  {
+    "trigger": "/control",
+    "label": "Control de rutina",
+    "content": "Control de rutina. Paciente en buen estado general. Signos vitales dentro de parámetros normales. Se indica continuar con medicación habitual y control en 6 meses o antes si presenta sintomatología."
+  },
+  {
+    "trigger": "/hta",
+    "label": "Hipertensión arterial",
+    "content": "Paciente con diagnóstico de hipertensión arterial. TA: [COMPLETAR]. Se indica control periódico de presión arterial, dieta hiposódica, actividad física regular. Medicación: [COMPLETAR]. Control en 30 días con laboratorio completo."
+  },
+  {
+    "trigger": "/diabetes",
+    "label": "Diabetes - Control",
+    "content": "Control de diabetes mellitus tipo 2. Glucemia: [COMPLETAR]. HbA1c: [COMPLETAR]. Se refuerza la importancia del plan alimentario y ejercicio regular. Medicación actual: [COMPLETAR]. Próximo control en 3 meses con laboratorio."
+  },
+  {
+    "trigger": "/lumbalgia",
+    "label": "Lumbalgia",
+    "content": "Paciente refiere dolor lumbar de [X] días de evolución. Al examen físico: contractura muscular paravertebral, movilidad conservada. Se indica: ibuprofeno 400mg c/8hs por 5 días, relajante muscular, reposo relativo. Evitar cargar peso. Control en 7 días."
+  },
+  {
+    "trigger": "/receta",
+    "label": "Emisión de receta",
+    "content": "Se extiende receta médica para continuar tratamiento habitual. Paciente en seguimiento ambulatorio, estable, sin cambios en medicación actual."
+  }
+]

@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "patientName": "Roberto Silva",
+    "phone": "+54 11 9988 7766",
+    "email": "roberto.silva@email.com",
+    "preferredDates": ["2025-12-03", "2025-12-04", "2025-12-05"],
+    "reason": "Control general",
+    "priority": "normal",
+    "addedDate": "2025-11-28"
+  },
+  {
+    "id": 2,
+    "patientName": "Ana Gonzalez",
+    "phone": "+54 11 4455 3322",
+    "email": "ana.gonzalez@email.com",
+    "preferredDates": ["2025-12-02", "2025-12-03"],
+    "reason": "Seguimiento post-operatorio",
+    "priority": "high",
+    "addedDate": "2025-11-30"
+  },
+  {
+    "id": 3,
+    "patientName": "Miguel Torres",
+    "phone": "+54 11 6677 8899",
+    "email": "miguel.torres@email.com",
+    "preferredDates": ["2025-12-04", "2025-12-05", "2025-12-06"],
+    "reason": "Primera consulta",
+    "priority": "normal",
+    "addedDate": "2025-12-01"
+  }
+]

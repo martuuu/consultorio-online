@@ -21,7 +21,7 @@ export default function Home() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <Zap className="h-5 w-5" />
             </div>
-            <span className="text-xl font-bold tracking-tight">Consultorio Light</span>
+            <span className="text-xl font-bold tracking-tight">Consultorio Online</span>
           </div>
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
             <Link href="#features" className="text-muted-foreground hover:text-foreground transition-colors">
@@ -263,7 +263,7 @@ export default function Home() {
                     <h3 className="text-lg font-semibold leading-8 text-foreground">ENTERPRISE</h3>
                     <p className="rounded-full bg-amber-500 px-2.5 py-1 text-xs font-semibold leading-5 text-white">Premium</p>
                   </div>
-                  <p className="mt-4 text-sm leading-6 text-muted-foreground">Cumplimiento normativo y telemedicina</p>
+                  <p className="mt-4 text-sm leading-6 text-muted-foreground">Portal de pacientes, telemedicina y cumplimiento normativo</p>
                   <p className="mt-6 flex items-baseline gap-x-1">
                     <span className="text-4xl font-bold tracking-tight text-foreground">$195</span>
                     <span className="text-sm font-semibold leading-6 text-muted-foreground">/mes</span>
@@ -277,6 +277,10 @@ export default function Home() {
                     <li className="flex gap-x-3">
                       <CheckCircle className="h-6 w-5 flex-none text-amber-500" />
                       Telemedicina Integrada
+                    </li>
+                    <li className="flex gap-x-3">
+                      <CheckCircle className="h-6 w-5 flex-none text-amber-500" />
+                      Portal de Pacientes
                     </li>
                     <li className="flex gap-x-3">
                       <CheckCircle className="h-6 w-5 flex-none text-amber-500" />
@@ -487,6 +491,22 @@ export default function Home() {
                     <p>• Backup automático cifrado</p>
                     <p>• Exportación GDPR de datos</p>
                     <p>• Firma digital avanzada con certificado</p>
+                  </dd>
+                </div>
+
+                <div className="flex flex-col rounded-2xl border bg-card p-6 shadow-sm">
+                  <dt className="flex items-center gap-x-3 text-base font-semibold leading-7 text-foreground">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10">
+                      <Users className="h-5 w-5 text-amber-500" />
+                    </div>
+                    Portal de Pacientes
+                  </dt>
+                  <dd className="mt-4 flex flex-auto flex-col text-sm leading-6 text-muted-foreground space-y-2">
+                    <p>• Acceso web para pacientes</p>
+                    <p>• Ver turnos y confirmar asistencia</p>
+                    <p>• Historial de consultas y documentos</p>
+                    <p>• Pago de consultas online</p>
+                    <p>• Notificaciones y recordatorios automáticos</p>
                   </dd>
                 </div>
               </dl>

@@ -1,19 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { use } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Zap, Calendar as CalendarIcon, Clock, CheckCircle } from "lucide-react";
+import { Zap, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
-export default function TurneroPage({ params }: { params: Promise<{ slug: string }> }) {
-  const resolvedParams = use(params);
+export default function SolicitarTurnoPage() {
   const [step, setStep] = useState(1);
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [time, setTime] = useState<string>("");
@@ -41,7 +39,7 @@ export default function TurneroPage({ params }: { params: Promise<{ slug: string
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">Reserva tu turno</h1>
           <p className="mt-2 text-lg text-muted-foreground">
-            Consultorio Light - {resolvedParams.slug}
+            Consultorio Médico
           </p>
         </div>
 

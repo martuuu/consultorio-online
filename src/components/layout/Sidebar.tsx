@@ -98,6 +98,12 @@ const sidebarItems = [
     badge: "ENTERPRISE", // Videollamadas integradas
   },
   {
+    title: "Portal Pacientes",
+    href: "/portal-pacientes",
+    icon: Users,
+    badge: "ENTERPRISE", // Acceso web para pacientes
+  },
+  {
     title: "Cumplimiento",
     href: "/cumplimiento",
     icon: Shield,
@@ -105,6 +111,12 @@ const sidebarItems = [
   },
 
   // ===== Siempre Visible =====
+  {
+    title: "Usuarios y Roles",
+    href: "/roles",
+    icon: Users,
+    badge: null,
+  },
   {
     title: "Configuración",
     href: "/configuracion",

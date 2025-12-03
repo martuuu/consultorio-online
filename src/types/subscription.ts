@@ -2,6 +2,8 @@
 
 export type PlanTier = "BASE" | "PRO" | "PREMIUM" | "ENTERPRISE";
 
+export type UserRole = "SUPERADMIN" | "ADMIN" | "MEDICO" | "RECEPCIONISTA";
+
 export type ModuleKey =
   // Base (MVP)
   | "agenda"
@@ -19,7 +21,8 @@ export type ModuleKey =
   // ENTERPRISE
   | "auditoria"
   | "telemedicina"
-  | "cumplimiento";
+  | "cumplimiento"
+  | "portal-pacientes";
 
 export interface Module {
   key: ModuleKey;
@@ -53,7 +56,78 @@ export const PLAN_MODULES: Record<PlanTier, ModuleKey[]> = {
   BASE: ["agenda", "turnos", "pacientes", "configuracion"],
   PRO: ["recetas", "facturacion", "reportes"],
   PREMIUM: ["comunicaciones", "recordatorios", "automatizaciones"],
-  ENTERPRISE: ["auditoria", "telemedicina", "cumplimiento"],
+  ENTERPRISE: ["auditoria", "telemedicina", "cumplimiento", "portal-pacientes"],
+};
+
+// Plan hierarchy for access control
+export const PLAN_HIERARCHY: Record<PlanTier, number> = {
+  BASE: 1,
+  PRO: 2,
+  PREMIUM: 3,
+  ENTERPRISE: 4
+};
+
+// Badge colors by tier
+export const TIER_COLORS: Record<PlanTier, {
+  bg: string;
+  text: string;
+  badge: string;
+  ring: string;
+}> = {
+  BASE: {
+    bg: "bg-gray-100 dark:bg-gray-800",
+    text: "text-gray-700 dark:text-gray-300",
+    badge: "bg-gray-500",
+    ring: "ring-gray-200 dark:ring-gray-700"
+  },
+  PRO: {
+    bg: "bg-blue-50 dark:bg-blue-950",
+    text: "text-blue-700 dark:text-blue-300",
+    badge: "bg-blue-500",
+    ring: "ring-blue-200 dark:ring-blue-800"
+  },
+  PREMIUM: {
+    bg: "bg-purple-50 dark:bg-purple-950",
+    text: "text-purple-700 dark:text-purple-300",
+    badge: "bg-purple-500",
+    ring: "ring-purple-200 dark:ring-purple-800"
+  },
+  ENTERPRISE: {
+    bg: "bg-amber-50 dark:bg-amber-950",
+    text: "text-amber-700 dark:text-amber-300",
+    badge: "bg-amber-500",
+    ring: "ring-amber-200 dark:ring-amber-800"
+  }
+};
+
+// Role permissions
+export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
+  SUPERADMIN: ["*"], // Full access
+  ADMIN: [
+    "manage_users",
+    "manage_patients",
+    "manage_appointments",
+    "view_reports",
+    "manage_billing",
+    "manage_settings",
+    "view_audit_logs"
+  ],
+  MEDICO: [
+    "view_patients",
+    "edit_patients",
+    "manage_appointments",
+    "view_medical_records",
+    "edit_medical_records",
+    "generate_prescriptions",
+    "view_reports"
+  ],
+  RECEPCIONISTA: [
+    "view_patients",
+    "create_patients",
+    "manage_appointments",
+    "view_waiting_list",
+    "contact_patients"
+  ]
 };
 
 // Pricing structure
@@ -191,6 +265,22 @@ export const MODULE_CATALOG: Module[] = [
       "Firma digital certificada",
     ],
   },
+  {
+    key: "portal-pacientes",
+    title: "Portal de Pacientes",
+    description: "Acceso web para pacientes",
+    tier: "ENTERPRISE",
+    priceUSD: 600,
+    maintenanceUSD: 25,
+    features: [
+      "Acceso seguro para pacientes",
+      "Ver y confirmar turnos",
+      "Historial de consultas",
+      "Descarga de documentos",
+      "Pago de consultas online",
+      "Notificaciones automáticas",
+    ],
+  },
 ];
 
 // Helper function to check if user has access to a module
@@ -225,4 +315,64 @@ export function calculatePlanCost(modules: ModuleKey[]): {
     baseMaintenance + moduleCosts.reduce((sum, m) => sum + m.maintenanceUSD, 0);
 
   return { setupCost, monthlyMaintenance };
+}
+
+// Helper: Check if a plan has access to another plan's modules
+export function canAccessPlan(userPlan: PlanTier, requiredPlan: PlanTier): boolean {
+  return PLAN_HIERARCHY[userPlan] >= PLAN_HIERARCHY[requiredPlan];
+}
+
+// Helper: Get all modules available for a plan (including inherited)
+export function getAvailableModules(userPlan: PlanTier): ModuleKey[] {
+  const modules: ModuleKey[] = [];
+  
+  // Add BASE modules
+  modules.push(...PLAN_MODULES.BASE);
+  
+  // Add PRO modules if user has PRO or higher
+  if (canAccessPlan(userPlan, "PRO")) {
+    modules.push(...PLAN_MODULES.PRO);
+  }
+  
+  // Add PREMIUM modules if user has PREMIUM or higher
+  if (canAccessPlan(userPlan, "PREMIUM")) {
+    modules.push(...PLAN_MODULES.PREMIUM);
+  }
+  
+  // Add ENTERPRISE modules if user has ENTERPRISE
+  if (canAccessPlan(userPlan, "ENTERPRISE")) {
+    modules.push(...PLAN_MODULES.ENTERPRISE);
+  }
+  
+  return modules;
+}
+
+// Helper: Get locked modules for a plan
+export function getLockedModules(userPlan: PlanTier): ModuleKey[] {
+  const available = getAvailableModules(userPlan);
+  const allModules = Object.values(PLAN_MODULES).flat();
+  return allModules.filter(m => !available.includes(m));
+}
+
+// Helper: Check if user role has permission
+export function hasRolePermission(userRole: UserRole, action: string): boolean {
+  const permissions = ROLE_PERMISSIONS[userRole];
+  return permissions.includes("*") || permissions.includes(action);
+}
+
+// Helper: Get required plan for a module
+export function getRequiredPlan(moduleKey: ModuleKey): PlanTier {
+  const moduleData = MODULE_CATALOG.find(m => m.key === moduleKey);
+  return moduleData?.tier || "BASE";
+}
+
+// Helper: Format role name for display
+export function formatRoleName(role: UserRole): string {
+  const names: Record<UserRole, string> = {
+    SUPERADMIN: "Super Administrador",
+    ADMIN: "Administrador",
+    MEDICO: "Médico",
+    RECEPCIONISTA: "Recepcionista"
+  };
+  return names[role];
 }

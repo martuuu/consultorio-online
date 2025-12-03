@@ -27,7 +27,7 @@ export function Header() {
       
       <div className="flex items-center gap-2 md:gap-3 shrink-0">
         <Button variant="outline" size="sm" asChild className="hidden md:flex whitespace-nowrap">
-          <a href="/turnos/consultorio-light" target="_blank" rel="noopener noreferrer">
+          <a href="/solicitar-turno" target="_blank" rel="noopener noreferrer">
             Ver Turnero Público
           </a>
         </Button>

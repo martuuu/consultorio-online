@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,10 +15,35 @@ import {
   FileText,
   Activity,
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  Loader2
 } from "lucide-react";
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  Cell
+} from "recharts";
+import { toast } from "sonner";
+import { exportToExcel } from "@/lib/excel-export";
 
 export default function ReportesPage() {
+  const [isExporting, setIsExporting] = useState(false);
+  const [period, setPeriod] = useState("last-6-months");
+  const [selectedDoctor, setSelectedDoctor] = useState("all");
+  const [selectedRoom, setSelectedRoom] = useState("all");
+  
   // Mock data
   const stats = {
     totalPatients: 248,
@@ -53,6 +79,31 @@ export default function ReportesPage() {
     { day: "Sáb", percentage: 45 },
   ];
 
+  // Colores para el gráfico de torta
+  const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
+
+  // Función exportar a Excel
+  const handleExportToExcel = async () => {
+    setIsExporting(true);
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    const data = monthlyData.map(d => ({
+      Mes: d.month,
+      Pacientes: d.patients,
+      Ingresos: `$${d.revenue.toLocaleString()}`
+    }));
+    
+    const columns = [
+      { header: "Mes", key: "Mes", width: 10 },
+      { header: "Pacientes", key: "Pacientes", width: 15 },
+      { header: "Ingresos", key: "Ingresos", width: 15 }
+    ];
+    
+    exportToExcel(data, columns, "Reporte_Consultorio");
+    toast.success("Reporte exportado a Excel correctamente");
+    setIsExporting(false);
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
@@ -63,9 +114,17 @@ export default function ReportesPage() {
         </div>
         <div className="flex items-center gap-2">
           <Badge className="bg-blue-500 text-white">PRO</Badge>
-          <Button variant="outline">
-            <Download className="mr-2 h-4 w-4" />
-            Exportar
+          <Button 
+            variant="outline"
+            onClick={handleExportToExcel}
+            disabled={isExporting}
+          >
+            {isExporting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="mr-2 h-4 w-4" />
+            )}
+            {isExporting ? "Exportando..." : "Exportar"}
           </Button>
         </div>
       </div>
@@ -74,7 +133,7 @@ export default function ReportesPage() {
       <Card>
         <CardContent className="pt-6">
           <div className="flex flex-wrap gap-4">
-            <Select defaultValue="last-6-months">
+            <Select value={period} onValueChange={setPeriod}>
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="Período" />
               </SelectTrigger>
@@ -87,7 +146,7 @@ export default function ReportesPage() {
               </SelectContent>
             </Select>
 
-            <Select defaultValue="all">
+            <Select value={selectedDoctor} onValueChange={setSelectedDoctor}>
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="Médico" />
               </SelectTrigger>
@@ -98,7 +157,7 @@ export default function ReportesPage() {
               </SelectContent>
             </Select>
 
-            <Select defaultValue="all">
+            <Select value={selectedRoom} onValueChange={setSelectedRoom}>
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="Sala" />
               </SelectTrigger>
@@ -202,53 +261,52 @@ export default function ReportesPage() {
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Pacientes por Mes</CardTitle>
-                <CardDescription>Evolución de consultas en los últimos 6 meses</CardDescription>
+                <CardTitle>Evolución de Pacientes</CardTitle>
+                <CardDescription>Consultas mensuales últimos 6 meses</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  {monthlyData.map((data, index) => (
-                    <div key={index} className="flex items-center gap-4">
-                      <div className="w-12 text-sm font-medium text-muted-foreground">{data.month}</div>
-                      <div className="flex-1">
-                        <div className="h-8 rounded-lg bg-primary/20 relative overflow-hidden">
-                          <div 
-                            className="h-full bg-primary flex items-center justify-end pr-2 text-xs font-medium text-white"
-                            style={{ width: `${(data.patients / 127) * 100}%` }}
-                          >
-                            {data.patients}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={monthlyData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Line 
+                      type="monotone" 
+                      dataKey="patients" 
+                      stroke="#8884d8" 
+                      strokeWidth={2}
+                      name="Pacientes"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>Ingresos por Mes</CardTitle>
-                <CardDescription>Evolución de ingresos en los últimos 6 meses</CardDescription>
+                <CardTitle>Evolución de Ingresos</CardTitle>
+                <CardDescription>Ingresos mensuales últimos 6 meses</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  {monthlyData.map((data, index) => (
-                    <div key={index} className="flex items-center gap-4">
-                      <div className="w-12 text-sm font-medium text-muted-foreground">{data.month}</div>
-                      <div className="flex-1">
-                        <div className="h-8 rounded-lg bg-green-500/20 relative overflow-hidden">
-                          <div 
-                            className="h-full bg-green-500 flex items-center justify-end pr-2 text-xs font-medium text-white"
-                            style={{ width: `${(data.revenue / 45600) * 100}%` }}
-                          >
-                            ${(data.revenue / 1000).toFixed(1)}k
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <ResponsiveContainer width="100%" height={300}>
+                  <AreaChart data={monthlyData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Area 
+                      type="monotone" 
+                      dataKey="revenue" 
+                      stroke="#22c55e" 
+                      fill="#22c55e"
+                      fillOpacity={0.3}
+                      name="Ingresos ($)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
               </CardContent>
             </Card>
           </div>
@@ -288,26 +346,27 @@ export default function ReportesPage() {
               <CardDescription>Porcentaje promedio de ocupación de agenda</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {occupancyByDay.map((day, index) => (
-                  <div key={index} className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium">{day.day}</span>
-                      <span className="text-muted-foreground">{day.percentage}%</span>
-                    </div>
-                    <div className="h-3 rounded-full bg-muted overflow-hidden">
-                      <div 
-                        className={`h-full rounded-full ${
-                          day.percentage >= 80 ? "bg-green-500" :
-                          day.percentage >= 60 ? "bg-yellow-500" :
-                          "bg-red-500"
-                        }`}
-                        style={{ width: `${day.percentage}%` }}
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={occupancyByDay}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="day" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="percentage" name="Ocupación (%)" fill="#8884d8">
+                    {occupancyByDay.map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={
+                          entry.percentage >= 80 ? "#22c55e" :
+                          entry.percentage >= 60 ? "#eab308" :
+                          "#ef4444"
+                        } 
                       />
-                    </div>
-                  </div>
-                ))}
-              </div>
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
 
               <div className="mt-6 p-4 bg-muted/50 rounded-lg">
                 <p className="text-sm font-medium mb-2">Recomendaciones</p>
@@ -386,38 +445,72 @@ export default function ReportesPage() {
 
         {/* Diagnósticos */}
         <TabsContent value="diagnosis" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Diagnósticos Más Frecuentes</CardTitle>
-              <CardDescription>Top 5 diagnósticos del último mes</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {topDiagnosis.map((diagnosis, index) => (
-                  <div key={index} className="flex items-center gap-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary font-bold">
-                      {index + 1}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-1">
-                        <div>
-                          <span className="font-medium">{diagnosis.name}</span>
-                          <Badge variant="outline" className="ml-2 text-xs">{diagnosis.code}</Badge>
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Diagnósticos Más Frecuentes</CardTitle>
+                <CardDescription>Top 5 diagnósticos del último mes</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={topDiagnosis}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={(entry) => {
+                        const name = entry.name || '';
+                        const percent = entry.percent || 0;
+                        return `${name.substring(0, 15)}: ${(percent * 100).toFixed(0)}%`;
+                      }}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="count"
+                    >
+                      {topDiagnosis.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Listado de Diagnósticos</CardTitle>
+                <CardDescription>Detalle por código CIE-10</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {topDiagnosis.map((diagnosis, index) => (
+                    <div key={index} className="flex items-center gap-4">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary font-bold">
+                        {index + 1}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1">
+                          <div>
+                            <span className="font-medium">{diagnosis.name}</span>
+                            <Badge variant="outline" className="ml-2 text-xs">{diagnosis.code}</Badge>
+                          </div>
+                          <span className="text-sm font-medium">{diagnosis.count} casos</span>
                         </div>
-                        <span className="text-sm font-medium">{diagnosis.count} casos</span>
-                      </div>
-                      <div className="h-2 rounded-full bg-muted overflow-hidden">
-                        <div 
-                          className="h-full bg-primary"
-                          style={{ width: `${(diagnosis.count / 24) * 100}%` }}
-                        />
+                        <div className="h-2 rounded-full bg-muted overflow-hidden">
+                          <div 
+                            className="h-full bg-primary"
+                            style={{ width: `${(diagnosis.count / 24) * 100}%` }}
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
@@ -486,8 +579,16 @@ export default function ReportesPage() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-3">
-            <Button variant="outline">
-              <Download className="mr-2 h-4 w-4" />
+            <Button 
+              variant="outline"
+              onClick={handleExportToExcel}
+              disabled={isExporting}
+            >
+              {isExporting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="mr-2 h-4 w-4" />
+              )}
               Exportar a Excel (.xlsx)
             </Button>
             <Button variant="outline">

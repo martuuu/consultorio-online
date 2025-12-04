@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2 } from "lucide-react";
-import { Calendar, Clock, Users, MapPin, Ambulance, FileText, MessageSquare, BarChart3, Bell, Zap, FileSearch, Shield, Video, Globe2 } from "lucide-react";
+import { Calendar, Clock, Users, MapPin, Ambulance, FileText, MessageSquare, BarChart3, Bell, Zap, FileSearch, Shield, Video, Globe2, Package, StickyNote } from "lucide-react";
 
 // Feature Card Component
 function FeatureCard({ 
@@ -54,7 +54,7 @@ export function FeaturesSection() {
             <span className="text-cyan-600">en un solo lugar</span>
           </h2>
           <p className="mt-6 text-lg text-muted-foreground">
-            18 módulos profesionales organizados en 4 planes. Escala según crece tu práctica.
+            20 módulos profesionales organizados en 4 planes. Escala según crece tu práctica.
           </p>
         </div>
 
@@ -129,7 +129,7 @@ export function FeaturesSection() {
 
         {/* PREMIUM Tier */}
         <div className="mb-16">
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             <FeatureCard 
               icon={<Bell className="h-6 w-6" />}
               title="Recordatorios Automáticos"
@@ -151,11 +151,19 @@ export function FeaturesSection() {
               items={["Obra social/Prepaga", "Exportación fiscal", "Vencimientos auto"]}
               borderColor="border-purple-500/50"
             />
+            <FeatureCard 
+              icon={<Package className="h-6 w-6" />}
+              title="Envíos Médicos"
+              description="PedidosYa API, cadeterías, tracking GPS, zonas de cobertura"
+              items={["3 prioridades", "5 proveedores", "Estadísticas completas"]}
+              highlight
+              borderColor="border-purple-500/50"
+            />
           </div>
         </div>
 
         {/* ENTERPRISE Tier */}
-        <div>
+        <div className="mb-16">
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             <FeatureCard 
               icon={<Shield className="h-6 w-6" />}
@@ -184,6 +192,20 @@ export function FeaturesSection() {
               description="HIPAA, Ley 25.326, GDPR, exportación de datos, backup cifrado"
               items={["3 regulaciones", "Backup auto", "Exportación GDPR"]}
               borderColor="border-amber-500/50"
+            />
+          </div>
+        </div>
+
+        {/* FUNCIONALIDADES BASE (Disponibles en todos) */}
+        <div>
+          <div className="flex justify-center">
+            <FeatureCard 
+              icon={<StickyNote className="h-6 w-6" />}
+              title="Sticky Notes"
+              description="Notas colaborativas contextuales para todo el equipo médico"
+              items={["Colores por usuario", "Menciones @usuario", "Auto-expiración", "Sincronización real-time"]}
+              highlight
+              borderColor="border-green-500/50"
             />
           </div>
         </div>

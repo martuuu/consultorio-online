@@ -13,10 +13,12 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Ambulance, MapPin, Phone, Clock, AlertTriangle, CheckCircle2, Navigation, Activity, Users, Building2, Eye, PhoneCall, Radio, Loader2 } from "lucide-react";
+import { Ambulance, MapPin, Phone, Clock, AlertTriangle, CheckCircle2, Navigation, Activity, Users, Building2, Eye, PhoneCall, Radio, Loader2, UserPlus, CalendarDays, TrendingUp, FileText, Plus } from "lucide-react";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from "date-fns";
 import { es } from "date-fns/locale";
+import PersonalCard from "@/components/emergencias/PersonalCard";
+import TurnoCard from "@/components/emergencias/TurnoCard";
 
 // Interfaces
 interface Emergency {
@@ -63,6 +65,36 @@ interface Base {
   staff: number;
   coverageArea: string[];
   operatingHours: string;
+}
+
+interface PersonalMember {
+  id: string;
+  name: string;
+  role: "MEDICO" | "PARAMEDICO" | "CONDUCTOR" | "ENFERMERO";
+  baseId: number;
+  phone: string;
+  email: string;
+  color: string;
+  speciality?: string;
+  license?: string;
+  active: boolean;
+}
+
+interface Shift {
+  id: string;
+  baseId: number;
+  date: string;
+  startTime: string;
+  endTime: string;
+  duration: number;
+  type: "FIJO" | "REEMPLAZO" | "EMERGENCIA";
+  crew: {
+    medico?: string;
+    paramedico?: string;
+    conductor?: string;
+    enfermero?: string;
+  };
+  status: "PROGRAMADO" | "EN_CURSO" | "COMPLETADO" | "CANCELADO";
 }
 
 // Mock Data
@@ -206,7 +238,111 @@ const MOCK_BASES: Base[] = [
   },
 ];
 
+const MOCK_PERSONAL: PersonalMember[] = [
+  // Base 1 - Central
+  { id: "1", name: "Dr. Roberto Sánchez", role: "MEDICO", baseId: 1, phone: "+54 11 5555-1001", email: "rsanchez@emergencias.com", color: "#dc2626", speciality: "Emergentología", active: true },
+  { id: "2", name: "Laura Gómez", role: "PARAMEDICO", baseId: 1, phone: "+54 11 5555-1002", email: "lgomez@emergencias.com", color: "#2563eb", active: true },
+  { id: "3", name: "Juan Pérez", role: "CONDUCTOR", baseId: 1, phone: "+54 11 5555-1003", email: "jperez@emergencias.com", color: "#16a34a", license: "D1 - Prof.", active: true },
+  { id: "4", name: "Carolina López", role: "ENFERMERO", baseId: 1, phone: "+54 11 5555-1004", email: "clopez@emergencias.com", color: "#9333ea", active: true },
+  
+  // Base 2 - Sur
+  { id: "5", name: "Dra. Patricia Moreno", role: "MEDICO", baseId: 2, phone: "+54 11 5555-2001", email: "pmoreno@emergencias.com", color: "#dc2626", speciality: "Cardiología", active: true },
+  { id: "6", name: "Sofía Ramírez", role: "PARAMEDICO", baseId: 2, phone: "+54 11 5555-2002", email: "sramirez@emergencias.com", color: "#2563eb", active: true },
+  { id: "7", name: "Miguel Torres", role: "CONDUCTOR", baseId: 2, phone: "+54 11 5555-2003", email: "mtorres@emergencias.com", color: "#16a34a", license: "D1 - Prof.", active: true },
+  
+  // Base 3 - Oeste
+  { id: "8", name: "Dr. Carlos Fernández", role: "MEDICO", baseId: 3, phone: "+54 11 5555-3001", email: "cfernandez@emergencias.com", color: "#dc2626", speciality: "Medicina Interna", active: true },
+  { id: "9", name: "Daniela Cruz", role: "PARAMEDICO", baseId: 3, phone: "+54 11 5555-3002", email: "dcruz@emergencias.com", color: "#2563eb", active: true },
+  { id: "10", name: "Ricardo Vargas", role: "CONDUCTOR", baseId: 3, phone: "+54 11 5555-3003", email: "rvargas@emergencias.com", color: "#16a34a", license: "D1 - Prof.", active: true },
+  { id: "11", name: "Pedro Díaz", role: "CONDUCTOR", baseId: 1, phone: "+54 11 5555-1005", email: "pdiaz@emergencias.com", color: "#16a34a", license: "D1 - Prof.", active: true },
+  { id: "12", name: "Ana García", role: "ENFERMERO", baseId: 2, phone: "+54 11 5555-2004", email: "agarcia@emergencias.com", color: "#9333ea", active: true },
+];
+
+const MOCK_SHIFTS: Shift[] = [
+  // Base 1 - Hoy
+  {
+    id: "s1",
+    baseId: 1,
+    date: "2025-12-04",
+    startTime: "08:00",
+    endTime: "20:00",
+    duration: 12,
+    type: "FIJO",
+    crew: {
+      medico: "Dr. Roberto Sánchez",
+      paramedico: "Laura Gómez",
+      conductor: "Juan Pérez",
+      enfermero: "Carolina López",
+    },
+    status: "EN_CURSO",
+  },
+  {
+    id: "s2",
+    baseId: 1,
+    date: "2025-12-04",
+    startTime: "20:00",
+    endTime: "08:00",
+    duration: 12,
+    type: "FIJO",
+    crew: {
+      medico: "Dr. Roberto Sánchez",
+      paramedico: "Laura Gómez",
+      conductor: "Pedro Díaz",
+    },
+    status: "PROGRAMADO",
+  },
+  // Base 2 - Hoy
+  {
+    id: "s3",
+    baseId: 2,
+    date: "2025-12-04",
+    startTime: "08:00",
+    endTime: "20:00",
+    duration: 12,
+    type: "FIJO",
+    crew: {
+      medico: "Dra. Patricia Moreno",
+      paramedico: "Sofía Ramírez",
+      conductor: "Miguel Torres",
+      enfermero: "Ana García",
+    },
+    status: "EN_CURSO",
+  },
+  // Base 3 - Hoy
+  {
+    id: "s4",
+    baseId: 3,
+    date: "2025-12-04",
+    startTime: "06:00",
+    endTime: "18:00",
+    duration: 12,
+    type: "REEMPLAZO",
+    crew: {
+      medico: "Dr. Carlos Fernández",
+      paramedico: "Daniela Cruz",
+      conductor: "Ricardo Vargas",
+    },
+    status: "EN_CURSO",
+  },
+  // Mañana
+  {
+    id: "s5",
+    baseId: 1,
+    date: "2025-12-05",
+    startTime: "08:00",
+    endTime: "20:00",
+    duration: 12,
+    type: "FIJO",
+    crew: {
+      medico: "Dr. Roberto Sánchez",
+      conductor: "Juan Pérez",
+    },
+    status: "PROGRAMADO",
+  },
+];
+
 export default function EmergenciasPage() {
+  // Estados de Emergencias
   const [emergencies, setEmergencies] = useState<Emergency[]>(MOCK_EMERGENCIES);
   const [ambulances] = useState<Ambulance[]>(MOCK_AMBULANCES);
   const [bases] = useState<Base[]>(MOCK_BASES);
@@ -221,6 +357,19 @@ export default function EmergenciasPage() {
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  // Estados de Personal y Turnos
+  const [personal] = useState<PersonalMember[]>(MOCK_PERSONAL);
+  const [shifts] = useState<Shift[]>(MOCK_SHIFTS);
+  const [selectedBase, setSelectedBase] = useState<number>(1);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [activeTab, setActiveTab] = useState("emergencies");
+
+  // Mock horas trabajadas (en un sistema real vendría del backend)
+  const horasTrabajadas: Record<string, number> = {
+    "1": 156, "2": 142, "3": 168, "4": 134, "5": 178, "6": 145,
+    "7": 152, "8": 138, "9": 162, "10": 148, "11": 154, "12": 140
+  };
 
   // Nuevo formulario emergencia
   const [newEmergency, setNewEmergency] = useState({
@@ -478,11 +627,19 @@ export default function EmergenciasPage() {
         </Card>
       </div>
 
-      <Tabs defaultValue="emergencies" className="space-y-6">
-        <TabsList>
+      <Tabs defaultValue="emergencies" className="space-y-6" value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="emergencies">
             <AlertTriangle className="mr-2 h-4 w-4" />
             Emergencias
+          </TabsTrigger>
+          <TabsTrigger value="turnos">
+            <CalendarDays className="mr-2 h-4 w-4" />
+            Turnos/Guardias
+          </TabsTrigger>
+          <TabsTrigger value="personal">
+            <UserPlus className="mr-2 h-4 w-4" />
+            Personal
           </TabsTrigger>
           <TabsTrigger value="ambulances">
             <Ambulance className="mr-2 h-4 w-4" />
@@ -492,9 +649,13 @@ export default function EmergenciasPage() {
             <Building2 className="mr-2 h-4 w-4" />
             Bases
           </TabsTrigger>
+          <TabsTrigger value="estadisticas">
+            <TrendingUp className="mr-2 h-4 w-4" />
+            Estadísticas
+          </TabsTrigger>
           <TabsTrigger value="map">
             <MapPin className="mr-2 h-4 w-4" />
-            Mapa en Tiempo Real
+            Mapa
           </TabsTrigger>
         </TabsList>
 
@@ -697,6 +858,306 @@ export default function EmergenciasPage() {
               </Card>
             ))}
           </div>
+        </TabsContent>
+
+        {/* Tab Turnos/Guardias */}
+        <TabsContent value="turnos" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold">Gestión de Turnos y Guardias</h3>
+              <p className="text-sm text-muted-foreground">Asigna y visualiza los horarios del personal por base</p>
+            </div>
+            <div className="flex gap-2">
+              <Select value={selectedBase.toString()} onValueChange={(val) => setSelectedBase(parseInt(val))}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {bases.map((base) => (
+                    <SelectItem key={base.id} value={base.id.toString()}>
+                      {base.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Nuevo Turno
+              </Button>
+            </div>
+          </div>
+
+          {/* Calendario Semanal */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Semana de {format(selectedDate, "dd 'de' MMMM yyyy", { locale: es })}</CardTitle>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setSelectedDate(addDays(selectedDate, -7))}>
+                    Anterior
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setSelectedDate(new Date())}>
+                    Hoy
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setSelectedDate(addDays(selectedDate, 7))}>
+                    Siguiente
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-7 gap-2">
+                {eachDayOfInterval({
+                  start: startOfWeek(selectedDate, { locale: es }),
+                  end: endOfWeek(selectedDate, { locale: es })
+                }).map((day) => {
+                  const dayShifts = shifts.filter(
+                    s => s.baseId === selectedBase && isSameDay(new Date(s.date), day)
+                  );
+                  const isToday = isSameDay(day, new Date());
+                  
+                  return (
+                    <div key={day.toString()} className={`border rounded-lg p-3 ${isToday ? 'border-primary bg-primary/5' : ''}`}>
+                      <div className="text-center mb-3">
+                        <p className="text-xs text-muted-foreground uppercase">
+                          {format(day, 'EEE', { locale: es })}
+                        </p>
+                        <p className={`text-lg font-bold ${isToday ? 'text-primary' : ''}`}>
+                          {format(day, 'd')}
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        {dayShifts.length === 0 ? (
+                          <p className="text-xs text-muted-foreground text-center">Sin turnos</p>
+                        ) : (
+                          dayShifts.map((shift) => (
+                            <TurnoCard key={shift.id} shift={shift} compact />
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Turnos del Día Seleccionado */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Turnos de Hoy - Base {bases.find(b => b.id === selectedBase)?.name}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2">
+                {shifts.filter(s => s.baseId === selectedBase && isSameDay(new Date(s.date), new Date())).map((shift) => (
+                  <TurnoCard key={shift.id} shift={shift} />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Tab Personal */}
+        <TabsContent value="personal" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold">Gestión de Personal</h3>
+              <p className="text-sm text-muted-foreground">Médicos, paramédicos, conductores y enfermeros</p>
+            </div>
+            <div className="flex gap-2">
+              <Select value={selectedBase.toString()} onValueChange={(val) => setSelectedBase(parseInt(val))}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">Todas las Bases</SelectItem>
+                  {bases.map((base) => (
+                    <SelectItem key={base.id} value={base.id.toString()}>
+                      {base.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button>
+                <UserPlus className="mr-2 h-4 w-4" />
+                Agregar Personal
+              </Button>
+            </div>
+          </div>
+
+          {/* Filtros por Rol */}
+          <div className="flex gap-2">
+            {["MEDICO", "PARAMEDICO", "CONDUCTOR", "ENFERMERO"].map((role) => (
+              <Badge key={role} variant="outline" className="cursor-pointer hover:bg-primary hover:text-primary-foreground">
+                {role === "MEDICO" && "Médicos"}
+                {role === "PARAMEDICO" && "Paramédicos"}
+                {role === "CONDUCTOR" && "Conductores"}
+                {role === "ENFERMERO" && "Enfermeros"}
+                <span className="ml-2 text-xs">
+                  ({personal.filter(p => p.role === role && (selectedBase === 0 || p.baseId === selectedBase)).length})
+                </span>
+              </Badge>
+            ))}
+          </div>
+
+          {/* Grid de Personal */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {personal
+              .filter(p => selectedBase === 0 || p.baseId === selectedBase)
+              .map((member) => (
+                <PersonalCard key={member.id} member={member} />
+              ))}
+          </div>
+        </TabsContent>
+
+        {/* Tab Estadísticas */}
+        <TabsContent value="estadisticas" className="space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold">Estadísticas y Reportes</h3>
+            <p className="text-sm text-muted-foreground">Métricas de rendimiento y análisis del servicio</p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Total Emergencias (30d)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">246</div>
+                <p className="text-xs text-green-600">+12% vs mes anterior</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Tiempo Promedio Respuesta</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">8.4 min</div>
+                <p className="text-xs text-green-600">-1.2 min vs mes anterior</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Tasa de Éxito</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">97.2%</div>
+                <p className="text-xs text-green-600">+2.1% vs mes anterior</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Guardias Completadas</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">182</div>
+                <p className="text-xs text-muted-foreground">En el último mes</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Estadísticas por Base */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Rendimiento por Base</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Base</TableHead>
+                    <TableHead>Emergencias</TableHead>
+                    <TableHead>Tiempo Promedio</TableHead>
+                    <TableHead>Personal Activo</TableHead>
+                    <TableHead>Guardias</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {bases.map((base) => {
+                    const basePersonal = personal.filter(p => p.baseId === base.id && p.active);
+                    const baseShifts = shifts.filter(s => s.baseId === base.id);
+                    
+                    return (
+                      <TableRow key={base.id}>
+                        <TableCell className="font-medium">{base.name}</TableCell>
+                        <TableCell>82</TableCell>
+                        <TableCell>7.8 min</TableCell>
+                        <TableCell>{basePersonal.length}</TableCell>
+                        <TableCell>{baseShifts.length}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          {/* Estadísticas de Personal */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Horas Trabajadas - Personal</CardTitle>
+              <CardDescription>Último mes</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {personal.slice(0, 6).map((member) => {
+                  const horas = horasTrabajadas[member.id] || 140;
+                  const maxHoras = 200;
+                  
+                  return (
+                    <div key={member.id} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: member.color }}
+                          />
+                          <span className="text-sm font-medium">{member.name}</span>
+                          <Badge variant="secondary" className="text-xs">
+                            {member.role}
+                          </Badge>
+                        </div>
+                        <span className="text-sm font-bold">{horas}h</span>
+                      </div>
+                      <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full transition-all"
+                          style={{
+                            width: `${(horas / maxHoras) * 100}%`,
+                            backgroundColor: member.color
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-semibold">Generar Reporte Completo</h4>
+                  <p className="text-sm text-muted-foreground">Exporta estadísticas detalladas en PDF o Excel</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline">
+                    <FileText className="mr-2 h-4 w-4" />
+                    Exportar PDF
+                  </Button>
+                  <Button variant="outline">
+                    <FileText className="mr-2 h-4 w-4" />
+                    Exportar Excel
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Tab Mapa */}

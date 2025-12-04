@@ -23,6 +23,8 @@ import {
   Home,
   Ambulance,
   UserCog,
+  Package,
+  StickyNote,
 } from "lucide-react";
 
 // Módulos del sistema organizados por sección
@@ -99,6 +101,18 @@ const sidebarItems = [
     href: "/facturacion",
     icon: DollarSign,
     badge: "PREMIUM",
+  },
+  {
+    title: "Envíos",
+    href: "/envios",
+    icon: Package,
+    badge: "PREMIUM",
+  },
+  {
+    title: "Sticky Notes",
+    href: "/sticky-notes",
+    icon: StickyNote,
+    badge: null,
   },
 
   // ===== ENTERPRISE =====

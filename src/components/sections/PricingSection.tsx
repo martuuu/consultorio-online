@@ -120,6 +120,10 @@ export function PricingSection() {
                 <CheckCircle2 className="h-5 w-5 text-purple-600 flex-shrink-0" />
                 <span>Facturación Electrónica</span>
               </li>
+              <li className="flex items-start gap-2 text-sm">
+                <CheckCircle2 className="h-5 w-5 text-purple-600 flex-shrink-0" />
+                <span>📦 Envíos con PedidosYa</span>
+              </li>
             </ul>
             <Link href="/signup">
               <Button variant="outline" className="w-full">Probar 15 días gratis</Button>
@@ -164,13 +168,21 @@ export function PricingSection() {
           </div>
         </div>
 
-        <div className="mt-16 text-center">
-          <p className="text-sm text-muted-foreground mb-4">¿Necesitás algo personalizado?</p>
-          <Link href="#contact">
-            <Button size="lg" variant="outline">
-              Solicitar Presupuesto a Medida
-            </Button>
-          </Link>
+        <div className="mt-16 text-center space-y-4">
+          <div className="inline-flex items-center gap-2 rounded-full bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 px-4 py-2">
+            <span className="text-2xl">📝</span>
+            <span className="text-sm font-medium text-green-700 dark:text-green-300">
+              Sticky Notes incluido GRATIS en todos los planes
+            </span>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground mb-4">¿Necesitás algo personalizado?</p>
+            <Link href="#contact">
+              <Button size="lg" variant="outline">
+                Solicitar Presupuesto a Medida
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
     </section>

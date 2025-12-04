@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import { toast } from "sonner";
+import { HeaderStickyNotes } from "@/components/features/HeaderStickyNotes";
 
 interface Notification {
   id: string;
@@ -107,6 +108,9 @@ export function Header() {
             className="w-full bg-background pl-8"
           />
         </div>
+        
+        {/* Sticky Notes - a la derecha del buscador */}
+        <HeaderStickyNotes />
       </div>
       
       <div className="flex items-center gap-2 md:gap-3 shrink-0">

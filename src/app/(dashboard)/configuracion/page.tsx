@@ -348,11 +348,12 @@ export default function ConfiguracionPage() {
       </div>
 
       <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5 lg:w-auto">
+        <TabsList className="grid w-full grid-cols-6 lg:w-auto">
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="schedules">Horarios Médicos</TabsTrigger>
           <TabsTrigger value="rooms">Salas</TabsTrigger>
           <TabsTrigger value="users">Usuarios</TabsTrigger>
+          <TabsTrigger value="sticky-notes">Sticky Notes</TabsTrigger>
           <TabsTrigger value="profile">Mi Perfil</TabsTrigger>
         </TabsList>
         
@@ -1099,6 +1100,150 @@ export default function ConfiguracionPage() {
                     ))}
                   </TableBody>
                 </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="sticky-notes" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Configuración de Sticky Notes</CardTitle>
+              <CardDescription>
+                Personaliza el comportamiento de las notas adhesivas en el sistema
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="space-y-4">
+                  <div className="rounded-lg border p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-base">Sistema habilitado</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Activar/desactivar globalmente las notas adhesivas
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                          Activo
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-base">Mostrar en todas las páginas</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Renderizar notas flotantes en todo el sistema
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                        Sí
+                      </Badge>
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-base">Habilitar menciones</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Permitir @menciones en las notas
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                        Activo
+                      </Badge>
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-base">Permitir notas privadas</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Solo el creador puede ver sus notas privadas
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                        Activo
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="rounded-lg border p-4 space-y-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-base">Días para auto-expiración</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Las notas se archivarán automáticamente después de este período
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input type="number" defaultValue={7} className="w-20" readOnly />
+                      <span className="text-sm text-muted-foreground">días</span>
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border p-4 space-y-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-base">Notas máximas por página</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Límite de notas visibles simultáneamente
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input type="number" defaultValue={5} className="w-20" readOnly />
+                      <span className="text-sm text-muted-foreground">notas</span>
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border p-4 space-y-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-base">Prioridad por defecto</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Prioridad asignada a nuevas notas
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                      Normal
+                    </Badge>
+                  </div>
+
+                  <div className="rounded-lg border p-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-base">Colores por rol</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Cada rol tiene un color distintivo
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      <Badge className="bg-red-500 text-white">SuperAdmin</Badge>
+                      <Badge className="bg-blue-500 text-white">Admin</Badge>
+                      <Badge className="bg-green-500 text-white">Médico</Badge>
+                      <Badge className="bg-amber-500 text-white">Recepcionista</Badge>
+                      <Badge className="bg-violet-500 text-white">Enfermero</Badge>
+                      <Badge className="bg-pink-500 text-white">Secretaria</Badge>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center pt-4 border-t">
+                <p className="text-sm text-muted-foreground">
+                  💡 Para configurar opciones avanzadas, visita la página de{" "}
+                  <a href="/sticky-notes" className="text-blue-600 hover:underline">
+                    Sticky Notes
+                  </a>
+                </p>
+                <Button>
+                  <Save className="mr-2 h-4 w-4" />
+                  Guardar Cambios
+                </Button>
               </div>
             </CardContent>
           </Card>

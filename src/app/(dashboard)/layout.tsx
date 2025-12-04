@@ -17,6 +17,7 @@ export default function DashboardLayout({
         </main>
       </div>
       <Toaster />
+      {/* StickyNotes ahora se muestran en el Header */}
     </div>
   );
 }

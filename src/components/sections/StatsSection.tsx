@@ -4,7 +4,7 @@ export function StatsSection() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-5xl mx-auto">
           <div className="text-center">
-            <div className="text-4xl font-bold bg-gradient-to-r from-cyan-600 to-teal-600 bg-clip-text text-transparent">18</div>
+            <div className="text-4xl font-bold bg-gradient-to-r from-cyan-600 to-teal-600 bg-clip-text text-transparent">20</div>
             <div className="text-sm text-muted-foreground mt-1">Módulos Completos</div>
           </div>
           <div className="text-center">

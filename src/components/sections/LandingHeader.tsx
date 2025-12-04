@@ -25,18 +25,18 @@ export function LandingHeader() {
           <Link href="#services" className="text-muted-foreground hover:text-foreground transition-colors">
             Servicios
           </Link>
-          <Link href="/login">
-            <Button variant="ghost" size="sm">Iniciar Sesión</Button>
+          <Link href="/agenda">
+            <Button variant="ghost" size="sm">Contacto</Button>
           </Link>
           <Link href="/agenda">
             <Button size="sm" className="bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-700 hover:to-teal-700">
-              Empezar Gratis
+              Ver Demo Live
             </Button>
           </Link>
         </nav>
         <div className="md:hidden">
-          <Link href="/login">
-             <Button size="sm">Ingresar</Button>
+          <Link href="/agenda">
+             <Button size="sm">Demo Live</Button>
           </Link>
         </div>
       </div>

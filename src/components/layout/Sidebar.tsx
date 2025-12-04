@@ -29,7 +29,7 @@ import {
 
 // Módulos del sistema organizados por sección
 const sidebarItems = [
-  // ===== GESTIÓN CONSULTORIO (Base) =====
+  // ===== BASE ($35/mes) =====
   {
     title: "Agenda",
     href: "/agenda",
@@ -48,22 +48,20 @@ const sidebarItems = [
     icon: Users,
     badge: null,
   },
+  {
+    title: "Sticky Notes",
+    href: "/sticky-notes",
+    icon: StickyNote,
+    badge: null,
+  },
 
-  // ===== SERVICIOS ESPECIALIZADOS =====
+  // ===== PRO ($65/mes) =====
   {
     title: "Atención Domiciliaria",
     href: "/ambulatorios",
     icon: Home,
-    badge: null,
-  },
-  {
-    title: "Servicio de Emergencias",
-    href: "/emergencias",
-    icon: Ambulance,
     badge: "PRO",
   },
-
-  // ===== GESTIÓN MÉDICA (PRO) =====
   {
     title: "Recetas y Órdenes",
     href: "/recetas",
@@ -82,8 +80,14 @@ const sidebarItems = [
     icon: BarChart3,
     badge: "PRO",
   },
+  {
+    title: "Portal Pacientes",
+    href: "/configuracion-portal",
+    icon: Users,
+    badge: "PRO",
+  },
 
-  // ===== AUTOMATIZACIÓN (PREMIUM) =====
+  // ===== PREMIUM ($110/mes) =====
   {
     title: "Recordatorios",
     href: "/recordatorios",
@@ -108,14 +112,14 @@ const sidebarItems = [
     icon: Package,
     badge: "PREMIUM",
   },
-  {
-    title: "Sticky Notes",
-    href: "/sticky-notes",
-    icon: StickyNote,
-    badge: null,
-  },
 
-  // ===== ENTERPRISE =====
+  // ===== ENTERPRISE (Personalizado) =====
+  {
+    title: "Servicio de Emergencias",
+    href: "/emergencias",
+    icon: Ambulance,
+    badge: "ENTERPRISE",
+  },
   {
     title: "Auditoría",
     href: "/auditoria",
@@ -126,12 +130,6 @@ const sidebarItems = [
     title: "Telemedicina",
     href: "/telemedicina",
     icon: Heart,
-    badge: "ENTERPRISE",
-  },
-  {
-    title: "Portal Pacientes",
-    href: "/configuracion-portal",
-    icon: Users,
     badge: "ENTERPRISE",
   },
   {

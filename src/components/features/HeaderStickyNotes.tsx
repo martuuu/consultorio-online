@@ -165,20 +165,31 @@ export function HeaderStickyNotes() {
   const remainingCount = visibleNotes.length - 3;
 
   return (
-    <div className="relative flex items-center gap-1">
+    <div className="relative flex items-center gap-2">
       {displayNotes.map((note) => {
         const roleColors = ROLE_COLORS[note.createdBy.role] || ROLE_COLORS.SECRETARIA;
         const isExpanded = expandedNoteId === note.id;
 
         return (
           <div key={note.id} className="relative">
-            {/* Nota colapsada */}
+            {/* Nota colapsada - Diseño mejorado */}
             <button
               onClick={() => toggleExpand(note.id)}
-              className={`${roleColors.bg} ${roleColors.text} px-3 py-1.5 rounded-md text-xs font-medium shadow-sm hover:shadow-md transition-all`}
+              className={`group relative ${roleColors.bg} hover:scale-105 px-4 py-2 rounded-lg text-xs font-medium shadow-md hover:shadow-lg transition-all border border-border/50 flex items-center gap-2 min-w-[120px]`}
               title={note.title}
             >
-              <StickyNoteIcon className="h-3.5 w-3.5" />
+              <StickyNoteIcon className={`h-4 w-4 ${roleColors.text} group-hover:scale-110 transition-transform`} />
+              <div className="flex flex-col items-start flex-1 min-w-0">
+                <span className={`${roleColors.text} font-semibold truncate max-w-full block text-left`}>
+                  {note.title}
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  {format(note.createdAt, "HH:mm", { locale: es })}
+                </span>
+              </div>
+              {note.priority === "high" && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+              )}
             </button>
 
             {/* Nota expandida - Dropdown hacia abajo */}
@@ -274,10 +285,11 @@ export function HeaderStickyNotes() {
       {remainingCount > 0 && (
         <Link href="/sticky-notes">
           <button
-            className="bg-muted hover:bg-muted/80 px-3 py-1.5 rounded-md text-xs font-medium shadow-sm transition-all"
-            title={`${remainingCount} notas más`}
+            className="group bg-linear-to-br from-primary/10 to-primary/5 hover:from-primary/20 hover:to-primary/10 border border-primary/20 hover:border-primary/30 px-4 py-2 rounded-lg text-xs font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 hover:scale-105"
+            title={`Ver ${remainingCount} notas más`}
           >
-            +{remainingCount}
+            <span className="text-primary">+{remainingCount}</span>
+            <StickyNoteIcon className="h-3.5 w-3.5 text-primary group-hover:rotate-12 transition-transform" />
           </button>
         </Link>
       )}

@@ -11,7 +11,7 @@ export function HeroSection() {
         <div className="mx-auto max-w-4xl text-center">
           <Badge className="mb-6 bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-100">
             <Sparkles className="h-3 w-3 mr-1" />
-            18 Módulos Completos • 0 Setup • Soporte 24/7
+            20 Módulos Completos • 0 Setup • Soporte 24/7
           </Badge>
           
           <h1 className="text-5xl font-bold tracking-tight sm:text-7xl bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 dark:from-white dark:via-gray-100 dark:to-white bg-clip-text text-transparent">
@@ -28,10 +28,10 @@ export function HeroSection() {
           </p>
 
           <div className="mt-12 flex items-center justify-center gap-4 flex-wrap">
-            <Link href="/signup">
+            <Link href="/agenda">
               <Button size="lg" className="h-14 px-10 text-base bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-700 hover:to-teal-700 shadow-lg shadow-cyan-500/30">
                 <Rocket className="mr-2 h-5 w-5" />
-                Empezar Ahora - Gratis
+                Ver Demo en Vivo
               </Button>
             </Link>
             <Link href="#pricing">
@@ -44,15 +44,15 @@ export function HeroSection() {
           <div className="mt-12 flex items-center justify-center gap-8 text-sm text-muted-foreground flex-wrap">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-green-600" />
-              <span>Sin tarjeta de crédito</span>
+              <span>Live Preview Completo</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-green-600" />
-              <span>15 días de prueba</span>
+              <span>Todos los módulos activos</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-green-600" />
-              <span>Cancela cuando quieras</span>
+              <span>Acceso inmediato</span>
             </div>
           </div>
         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,13 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageSquare, Mail, Phone, Send, Clock, CheckCheck, Users, Search } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { 
+  MessageSquare, Mail, Phone, Send, Clock, CheckCheck, Users, Paperclip, 
+  Calendar, Filter, Eye, Info, User, MapPin, FileText, AlertCircle, 
+  Building, Edit, Plus, Save, Stethoscope 
+} from "lucide-react";
+import { toast } from "sonner";
 
 // Mock data
 const MOCK_MESSAGES = [
@@ -48,16 +54,158 @@ const MOCK_TEMPLATES = [
   { id: 4, name: "Post-Consulta", content: "Gracias por tu visita. Recordá seguir las indicaciones y cualquier consulta, no dudes en contactarnos." },
 ];
 
-const MOCK_TEAM_CHAT = [
-  { id: 1, user: "Dr. Navarro", message: "¿Alguien sabe si llegó el paciente de las 11?", time: "10:55", avatar: "DN" },
-  { id: 2, user: "Clara (Admin)", message: "Sí, está en sala de espera", time: "10:56", avatar: "CS" },
-  { id: 3, user: "Dra. Lopez", message: "Necesito la historia clínica de María García urgente", time: "11:20", avatar: "AL" },
-  { id: 4, user: "Dr. Navarro", message: "Ya te la comparto por el sistema", time: "11:22", avatar: "DN" },
+interface ChatMessage {
+  id: string;
+  user: string;
+  message: string;
+  time: string;
+  avatar: string;
+  isCurrentUser?: boolean;
+}
+
+const INITIAL_MOCK_CHAT: ChatMessage[] = [
+  { id: "1", user: "Dr. Navarro", message: "¿Alguien sabe si llegó el paciente de las 11?", time: "10:55", avatar: "DN" },
+  { id: "2", user: "Clara (Admin)", message: "Sí, está en sala de espera", time: "10:56", avatar: "CS" },
+  { id: "3", user: "Dra. Lopez", message: "Necesito la historia clínica de María García urgente", time: "11:20", avatar: "AL" },
+  { id: "4", user: "Dr. Navarro", message: "Ya te la comparto por el sistema", time: "11:22", avatar: "DN" },
 ];
+
+// Enviar notificación al header
+const sendNotification = (title: string, message: string, link?: string) => {
+  const notification = {
+    id: Date.now().toString(),
+    type: "chat" as const,
+    title,
+    message,
+    timestamp: new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+    read: false,
+    link
+  };
+
+  // Guardar en localStorage
+  const stored = localStorage.getItem("notifications");
+  const notifications = stored ? JSON.parse(stored) : [];
+  const updated = [notification, ...notifications].slice(0, 10);
+  localStorage.setItem("notifications", JSON.stringify(updated));
+
+  // Disparar evento personalizado para que el header se actualice
+  const event = new CustomEvent("newNotification", { detail: notification });
+  window.dispatchEvent(event);
+};
 
 export default function ComunicacionesPage() {
   const [selectedChannel, setSelectedChannel] = useState("whatsapp");
   const [newMessage, setNewMessage] = useState("");
+  const [messageContent, setMessageContent] = useState("");
+  const [subject, setSubject] = useState("");
+  const [selectedTemplate, setSelectedTemplate] = useState("");
+  const [showScheduleDialog, setShowScheduleDialog] = useState(false);
+  const [showPreviewDialog, setShowPreviewDialog] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [scheduleTime, setScheduleTime] = useState("");
+  const [charCount, setCharCount] = useState(0);
+  
+  // Chat states - inicializar con localStorage
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => {
+    if (typeof window === 'undefined') return INITIAL_MOCK_CHAT;
+    
+    const stored = localStorage.getItem("teamChatMessages");
+    if (stored) {
+      return JSON.parse(stored);
+    } else {
+      localStorage.setItem("teamChatMessages", JSON.stringify(INITIAL_MOCK_CHAT));
+      return INITIAL_MOCK_CHAT;
+    }
+  });
+
+  // Escuchar cambios en localStorage (para sincronizar entre tabs)
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const stored = localStorage.getItem("teamChatMessages");
+      if (stored) {
+        setChatMessages(JSON.parse(stored));
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
+
+  // Cargar plantilla en el textarea
+  const handleLoadTemplate = (templateId: string) => {
+    const template = MOCK_TEMPLATES.find(t => t.id.toString() === templateId);
+    if (template) {
+      setMessageContent(template.content);
+      setCharCount(template.content.length);
+      toast.success(`Plantilla "${template.name}" cargada`);
+    }
+  };
+
+  // Programar envío
+  const handleScheduleSend = () => {
+    if (!scheduleDate || !scheduleTime) {
+      toast.error("Por favor selecciona fecha y hora");
+      return;
+    }
+    toast.success("Mensaje programado exitosamente", {
+      description: `Se enviará el ${scheduleDate} a las ${scheduleTime}`
+    });
+    setShowScheduleDialog(false);
+    setScheduleDate("");
+    setScheduleTime("");
+  };
+
+  // Preview del mensaje
+  const handlePreview = () => {
+    if (!messageContent) {
+      toast.error("Escribe un mensaje para ver la vista previa");
+      return;
+    }
+    setShowPreviewDialog(true);
+  };
+
+  // Actualizar contador de caracteres
+  const handleMessageChange = (value: string) => {
+    setMessageContent(value);
+    setCharCount(value.length);
+  };
+
+  // Enviar mensaje en el chat interno
+  const handleSendChatMessage = () => {
+    if (!newMessage.trim()) {
+      return;
+    }
+
+    const now = new Date();
+    const timeString = now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+    
+    const message: ChatMessage = {
+      id: Date.now().toString(),
+      user: "Dr. Navarro",
+      message: newMessage.trim(),
+      time: timeString,
+      avatar: "DN",
+      isCurrentUser: true
+    };
+
+    // Actualizar mensajes
+    const updatedMessages = [...chatMessages, message];
+    setChatMessages(updatedMessages);
+    
+    // Guardar en localStorage
+    localStorage.setItem("teamChatMessages", JSON.stringify(updatedMessages));
+
+    // Enviar notificación al header
+    sendNotification(
+      "Nuevo mensaje en Chat Interno",
+      newMessage.trim(),
+      "/comunicaciones"
+    );
+
+    // Limpiar input y mostrar toast
+    setNewMessage("");
+    toast.success("Mensaje enviado");
+  };
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -189,16 +337,36 @@ export default function ComunicacionesPage() {
                 {selectedChannel === "email" && (
                   <div className="space-y-2">
                     <Label htmlFor="subject">Asunto</Label>
-                    <Input id="subject" placeholder="Asunto del email..." />
+                    <Input 
+                      id="subject" 
+                      placeholder="Asunto del email..."
+                      value={subject}
+                      onChange={(e) => setSubject(e.target.value)}
+                    />
                   </div>
                 )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="message">Mensaje</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="message">Mensaje</Label>
+                    <div className="flex items-center gap-2">
+                      {selectedChannel === "sms" && charCount > 160 && (
+                        <Badge variant="destructive" className="text-xs">
+                          Excede límite SMS
+                        </Badge>
+                      )}
+                      <span className={`text-xs ${charCount > 160 && selectedChannel === "sms" ? "text-red-500 font-bold" : "text-muted-foreground"}`}>
+                        {charCount} caracteres
+                        {selectedChannel === "sms" && " (máx 160)"}
+                      </span>
+                    </div>
+                  </div>
                   <Textarea 
                     id="message" 
                     placeholder="Escribe tu mensaje aquí..."
                     rows={8}
+                    value={messageContent}
+                    onChange={(e) => handleMessageChange(e.target.value)}
                   />
                   <p className="text-xs text-muted-foreground">
                     Variables disponibles: {"{nombre}"}, {"{fecha}"}, {"{hora}"}, {"{direccion}"}
@@ -207,7 +375,10 @@ export default function ComunicacionesPage() {
 
                 <div className="space-y-2">
                   <Label>Usar Plantilla</Label>
-                  <Select>
+                  <Select value={selectedTemplate} onValueChange={(value) => {
+                    setSelectedTemplate(value);
+                    handleLoadTemplate(value);
+                  }}>
                     <SelectTrigger>
                       <SelectValue placeholder="Seleccionar plantilla..." />
                     </SelectTrigger>
@@ -221,32 +392,59 @@ export default function ComunicacionesPage() {
                   </Select>
                 </div>
 
-                <div className="flex gap-2 pt-4">
+                <div className="flex flex-wrap gap-2 pt-4">
                   <Button 
-                    className="flex-1" 
                     variant="outline"
-                    onClick={() => alert("Borrador guardado exitosamente")}
+                    size="sm"
+                    onClick={handlePreview}
+                    title="Ver cómo se verá el mensaje"
+                  >
+                    <Eye className="mr-2 h-4 w-4" />
+                    Vista Previa
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={() => toast.info("Función de adjuntar archivo disponible próximamente")}
+                    title="Adjuntar archivo (próximamente)"
+                  >
+                    <Paperclip className="mr-2 h-4 w-4" />
+                    Adjuntar
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      toast.success("Borrador guardado exitosamente");
+                    }}
                     title="Guarda el mensaje para enviarlo más tarde"
                   >
                     Guardar Borrador
                   </Button>
-                  <Button 
-                    className="flex-1 bg-blue-500 hover:bg-blue-600"
-                    onClick={() => alert(`Mensaje enviado por ${selectedChannel === "whatsapp" ? "WhatsApp" : selectedChannel === "email" ? "Email" : "SMS"}`)}
-                    title="Envía el mensaje inmediatamente"
-                  >
-                    <Send className="mr-2 h-4 w-4" />
-                    Enviar Ahora
-                  </Button>
-                  <Button 
-                    className="flex-1" 
-                    variant="outline"
-                    onClick={() => alert("Programar envío: Selecciona fecha y hora")}
-                    title="Programa el envío para una fecha y hora específica"
-                  >
-                    <Clock className="mr-2 h-4 w-4" />
-                    Programar
-                  </Button>
+                  <div className="flex-1 flex gap-2">
+                    <Button 
+                      className="flex-1 bg-blue-500 hover:bg-blue-600"
+                      onClick={() => {
+                        const channelName = selectedChannel === "whatsapp" ? "WhatsApp" : selectedChannel === "email" ? "Email" : "SMS";
+                        toast.success(`Mensaje enviado por ${channelName}`, {
+                          description: "El destinatario recibirá tu mensaje"
+                        });
+                      }}
+                      title="Envía el mensaje inmediatamente"
+                    >
+                      <Send className="mr-2 h-4 w-4" />
+                      Enviar Ahora
+                    </Button>
+                    <Button 
+                      className="flex-1" 
+                      variant="outline"
+                      onClick={() => setShowScheduleDialog(true)}
+                      title="Programa el envío para una fecha y hora específica"
+                    >
+                      <Clock className="mr-2 h-4 w-4" />
+                      Programar
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -262,10 +460,45 @@ export default function ComunicacionesPage() {
                   <CardTitle>Historial de Mensajes</CardTitle>
                   <CardDescription>Todos los mensajes enviados</CardDescription>
                 </div>
-                <Button variant="outline" size="sm">
-                  <Search className="mr-2 h-4 w-4" />
-                  Buscar
-                </Button>
+                <div className="flex gap-2">
+                  <Select defaultValue="all-dates">
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all-dates">Todas las fechas</SelectItem>
+                      <SelectItem value="today">Hoy</SelectItem>
+                      <SelectItem value="week">Última semana</SelectItem>
+                      <SelectItem value="month">Último mes</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select defaultValue="all-channels">
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all-channels">Todos los canales</SelectItem>
+                      <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                      <SelectItem value="email">Email</SelectItem>
+                      <SelectItem value="sms">SMS</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select defaultValue="all-status">
+                    <SelectTrigger className="w-[130px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all-status">Todos</SelectItem>
+                      <SelectItem value="delivered">Entregado</SelectItem>
+                      <SelectItem value="read">Leído</SelectItem>
+                      <SelectItem value="pending">Pendiente</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button variant="outline" size="sm">
+                    <Filter className="mr-2 h-4 w-4" />
+                    Filtrar
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -302,34 +535,169 @@ export default function ComunicacionesPage() {
 
         {/* Plantillas */}
         <TabsContent value="templates" className="space-y-6">
+          {/* Variables Disponibles */}
+          <Card className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Info className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <CardTitle className="text-blue-900 dark:text-blue-100">Variables Disponibles</CardTitle>
+              </div>
+              <CardDescription className="text-blue-700 dark:text-blue-300">
+                Usa estas variables en tus plantillas para personalizar mensajes automáticamente
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="flex items-start gap-3 p-3 bg-white dark:bg-gray-900 rounded-lg border">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 shrink-0">
+                    <User className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="font-mono text-sm font-semibold text-blue-600 dark:text-blue-400">{"{nombre}"}</p>
+                    <p className="text-xs text-muted-foreground">Nombre del paciente</p>
+                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">Ej: Juan Pérez</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-3 bg-white dark:bg-gray-900 rounded-lg border">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400 shrink-0">
+                    <Calendar className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="font-mono text-sm font-semibold text-green-600 dark:text-green-400">{"{fecha}"}</p>
+                    <p className="text-xs text-muted-foreground">Fecha del turno</p>
+                    <p className="text-xs text-green-600 dark:text-green-400 mt-1">Ej: 15/12/2025</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-3 bg-white dark:bg-gray-900 rounded-lg border">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400 shrink-0">
+                    <Clock className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="font-mono text-sm font-semibold text-purple-600 dark:text-purple-400">{"{hora}"}</p>
+                    <p className="text-xs text-muted-foreground">Hora del turno</p>
+                    <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">Ej: 10:30</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-3 bg-white dark:bg-gray-900 rounded-lg border">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-100 dark:bg-orange-900 text-orange-600 dark:text-orange-400 shrink-0">
+                    <MapPin className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="font-mono text-sm font-semibold text-orange-600 dark:text-orange-400">{"{direccion}"}</p>
+                    <p className="text-xs text-muted-foreground">Dirección consultorio</p>
+                    <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">Ej: Av. Corrientes 1234</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-3 bg-white dark:bg-gray-900 rounded-lg border">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-pink-100 dark:bg-pink-900 text-pink-600 dark:text-pink-400 shrink-0">
+                    <Stethoscope className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="font-mono text-sm font-semibold text-pink-600 dark:text-pink-400">{"{doctor}"}</p>
+                    <p className="text-xs text-muted-foreground">Nombre del médico</p>
+                    <p className="text-xs text-pink-600 dark:text-pink-400 mt-1">Ej: Dr. Navarro</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-3 bg-white dark:bg-gray-900 rounded-lg border">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-100 dark:bg-cyan-900 text-cyan-600 dark:text-cyan-400 shrink-0">
+                    <Phone className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="font-mono text-sm font-semibold text-cyan-600 dark:text-cyan-400">{"{telefono}"}</p>
+                    <p className="text-xs text-muted-foreground">Teléfono consultorio</p>
+                    <p className="text-xs text-cyan-600 dark:text-cyan-400 mt-1">Ej: 011-1234-5678</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-3 bg-white dark:bg-gray-900 rounded-lg border">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-yellow-100 dark:bg-yellow-900 text-yellow-600 dark:text-yellow-400 shrink-0">
+                    <FileText className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="font-mono text-sm font-semibold text-yellow-600 dark:text-yellow-400">{"{turno_id}"}</p>
+                    <p className="text-xs text-muted-foreground">ID del turno</p>
+                    <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">Ej: #12345</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-3 bg-white dark:bg-gray-900 rounded-lg border">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400 shrink-0">
+                    <AlertCircle className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="font-mono text-sm font-semibold text-red-600 dark:text-red-400">{"{motivo}"}</p>
+                    <p className="text-xs text-muted-foreground">Motivo de la consulta</p>
+                    <p className="text-xs text-red-600 dark:text-red-400 mt-1">Ej: Control anual</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-3 bg-white dark:bg-gray-900 rounded-lg border">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400 shrink-0">
+                    <Building className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="font-mono text-sm font-semibold text-indigo-600 dark:text-indigo-400">{"{consultorio}"}</p>
+                    <p className="text-xs text-muted-foreground">Nombre del consultorio</p>
+                    <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">Ej: Consultorio Médico</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Plantillas Predefinidas */}
           <div className="grid gap-6 md:grid-cols-2">
             {MOCK_TEMPLATES.map((template) => (
               <Card key={template.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">{template.name}</CardTitle>
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <MessageSquare className="h-4 w-4" />
+                      </div>
+                      <CardTitle className="text-lg">{template.name}</CardTitle>
+                    </div>
                     <Badge variant="outline">Plantilla</Badge>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-4">{template.content}</p>
+                <CardContent className="space-y-4">
+                  <div className="rounded-lg bg-muted p-3">
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{template.content}</p>
+                  </div>
                   <div className="flex gap-2">
                     <Button 
                       size="sm" 
                       variant="outline" 
                       className="flex-1"
-                      onClick={() => alert(`Editando plantilla: ${template.name}`)}
+                      onClick={() => {
+                        toast.info("Función de edición", {
+                          description: "Esta funcionalidad estará disponible en la próxima versión"
+                        });
+                      }}
                       title="Modifica el contenido de esta plantilla"
                     >
+                      <Edit className="mr-2 h-4 w-4" />
                       Editar
                     </Button>
                     <Button 
                       size="sm" 
                       className="flex-1 bg-blue-500 hover:bg-blue-600"
-                      onClick={() => alert(`Plantilla "${template.name}" cargada en el editor`)}
+                      onClick={() => {
+                        setSelectedTemplate(template.id.toString());
+                        handleLoadTemplate(template.id.toString());
+                        toast.success(`Plantilla "${template.name}" lista para usar`, {
+                          description: "Ve a la pestaña 'Enviar Mensaje' para completar y enviar"
+                        });
+                      }}
                       title="Usa esta plantilla para enviar un mensaje"
                     >
-                      Usar
+                      <Send className="mr-2 h-4 w-4" />
+                      Usar Ahora
                     </Button>
                   </div>
                 </CardContent>
@@ -337,27 +705,137 @@ export default function ComunicacionesPage() {
             ))}
           </div>
 
+          {/* Crear Nueva Plantilla */}
           <Card>
             <CardHeader>
-              <CardTitle>Crear Nueva Plantilla</CardTitle>
-              <CardDescription>Guarda mensajes que usas frecuentemente</CardDescription>
+              <div className="flex items-center gap-2">
+                <Plus className="h-5 w-5 text-primary" />
+                <CardTitle>Crear Nueva Plantilla</CardTitle>
+              </div>
+              <CardDescription>Guarda mensajes que usas frecuentemente con variables personalizables</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Nombre de la Plantilla</Label>
-                <Input placeholder="Ej: Recordatorio 48hs" />
+                <Label htmlFor="template-name">Nombre de la Plantilla</Label>
+                <Input 
+                  id="template-name"
+                  placeholder="Ej: Recordatorio 48hs antes" 
+                />
               </div>
               <div className="space-y-2">
-                <Label>Contenido</Label>
-                <Textarea placeholder="Contenido del mensaje..." rows={4} />
+                <Label htmlFor="template-category">Categoría</Label>
+                <Select defaultValue="recordatorio">
+                  <SelectTrigger id="template-category">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="recordatorio">📅 Recordatorio</SelectItem>
+                    <SelectItem value="confirmacion">✅ Confirmación</SelectItem>
+                    <SelectItem value="resultados">📋 Resultados</SelectItem>
+                    <SelectItem value="seguimiento">🔄 Seguimiento</SelectItem>
+                    <SelectItem value="cancelacion">❌ Cancelación</SelectItem>
+                    <SelectItem value="bienvenida">👋 Bienvenida</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <Button 
-                className="bg-blue-500 hover:bg-blue-600"
-                onClick={() => alert("Plantilla creada exitosamente")}
-                title="Guarda esta plantilla para usarla en futuros mensajes"
-              >
-                Guardar Plantilla
-              </Button>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="template-content">Contenido</Label>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => {
+                      toast.info("Tip: Variables disponibles", {
+                        description: "Usa {nombre}, {fecha}, {hora}, {doctor}, etc. Mira la lista completa arriba."
+                      });
+                    }}
+                  >
+                    <Info className="mr-2 h-4 w-4" />
+                    Ver variables
+                  </Button>
+                </div>
+                <Textarea 
+                  id="template-content"
+                  placeholder="Hola {nombre}, te recordamos tu turno con {doctor} el día {fecha} a las {hora}. Consultorio: {direccion}. ¡Te esperamos!"
+                  rows={6} 
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  className="flex-1 bg-blue-500 hover:bg-blue-600"
+                  onClick={() => {
+                    toast.success("Plantilla creada exitosamente", {
+                      description: "Ahora puedes usarla desde 'Enviar Mensaje'"
+                    });
+                  }}
+                  title="Guarda esta plantilla para usarla en futuros mensajes"
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  Guardar Plantilla
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    toast.info("Vista previa", {
+                      description: "Ejemplo: Hola Juan Pérez, te recordamos tu turno con Dr. Navarro el día 15/12/2025 a las 10:30..."
+                    });
+                  }}
+                  title="Ver cómo se verá el mensaje"
+                >
+                  <Eye className="mr-2 h-4 w-4" />
+                  Vista Previa
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Estadísticas de Uso */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Estadísticas de Plantillas</CardTitle>
+              <CardDescription>Plantillas más utilizadas este mes</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400">
+                      <MessageSquare className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="font-medium">Recordatorio de Turno</p>
+                      <p className="text-sm text-muted-foreground">156 usos este mes</p>
+                    </div>
+                  </div>
+                  <Badge className="bg-blue-500">🥇 #1</Badge>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400">
+                      <MessageSquare className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="font-medium">Confirmación de Turno</p>
+                      <p className="text-sm text-muted-foreground">89 usos este mes</p>
+                    </div>
+                  </div>
+                  <Badge className="bg-green-500">🥈 #2</Badge>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400">
+                      <MessageSquare className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="font-medium">Post-Consulta</p>
+                      <p className="text-sm text-muted-foreground">67 usos este mes</p>
+                    </div>
+                  </div>
+                  <Badge className="bg-purple-500">🥉 #3</Badge>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -425,7 +903,7 @@ export default function ComunicacionesPage() {
               <CardContent>
                 <ScrollArea className="h-[400px] pr-4">
                   <div className="space-y-4">
-                    {MOCK_TEAM_CHAT.map((chat) => (
+                    {chatMessages.map((chat) => (
                       <div key={chat.id} className="flex gap-3">
                         <Avatar className="h-8 w-8">
                           <AvatarFallback className="text-xs">{chat.avatar}</AvatarFallback>
@@ -448,12 +926,17 @@ export default function ComunicacionesPage() {
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     onKeyPress={(e) => {
-                      if (e.key === "Enter") {
-                        setNewMessage("");
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendChatMessage();
                       }
                     }}
                   />
-                  <Button size="icon" className="bg-blue-500 hover:bg-blue-600">
+                  <Button 
+                    size="icon" 
+                    className="bg-blue-500 hover:bg-blue-600"
+                    onClick={handleSendChatMessage}
+                  >
                     <Send className="h-4 w-4" />
                   </Button>
                 </div>
@@ -462,6 +945,101 @@ export default function ComunicacionesPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Schedule Dialog */}
+      <Dialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Programar Envío</DialogTitle>
+            <DialogDescription>
+              Selecciona cuándo quieres que se envíe el mensaje
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="date">Fecha</Label>
+              <Input 
+                id="date" 
+                type="date"
+                value={scheduleDate}
+                onChange={(e) => setScheduleDate(e.target.value)}
+                min={new Date().toISOString().split('T')[0]}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="time">Hora</Label>
+              <Input 
+                id="time" 
+                type="time"
+                value={scheduleTime}
+                onChange={(e) => setScheduleTime(e.target.value)}
+              />
+            </div>
+            <div className="p-3 bg-muted rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                ℹ️ El mensaje se enviará automáticamente en la fecha y hora seleccionada
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowScheduleDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleScheduleSend} className="bg-blue-500 hover:bg-blue-600">
+              <Calendar className="mr-2 h-4 w-4" />
+              Confirmar Programación
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Preview Dialog */}
+      <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Vista Previa del Mensaje</DialogTitle>
+            <DialogDescription>
+              Así se verá tu mensaje al enviarse por {selectedChannel === "whatsapp" ? "WhatsApp" : selectedChannel === "email" ? "Email" : "SMS"}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className={`p-4 rounded-lg ${
+            selectedChannel === "whatsapp" ? "bg-green-50 border-2 border-green-200" :
+            selectedChannel === "email" ? "bg-blue-50 border-2 border-blue-200" :
+            "bg-purple-50 border-2 border-purple-200"
+          }`}>
+            {selectedChannel === "email" && subject && (
+              <div className="mb-3 pb-3 border-b border-gray-300">
+                <p className="text-xs font-semibold text-gray-600">Asunto:</p>
+                <p className="font-medium">{subject}</p>
+              </div>
+            )}
+            <div className="whitespace-pre-wrap text-sm">
+              {messageContent || "No hay contenido para previsualizar"}
+            </div>
+            <div className="mt-4 pt-3 border-t border-gray-300 flex items-center justify-between text-xs text-gray-600">
+              <span>Consultorio Médico</span>
+              <span>{new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+          </div>
+
+          {selectedChannel === "sms" && charCount > 160 && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-700">
+                ⚠️ El mensaje excede los 160 caracteres permitidos para SMS
+              </p>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPreviewDialog(false)}>
+              Cerrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

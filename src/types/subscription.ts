@@ -101,33 +101,105 @@ export const TIER_COLORS: Record<PlanTier, {
   }
 };
 
-// Role permissions
-export const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
-  SUPERADMIN: ["*"], // Full access
+// Granular permissions by module
+export type Permission =
+  // Pacientes
+  | "patients.view" | "patients.create" | "patients.edit" | "patients.delete"
+  | "patients.export" | "patients.view_medical_history"
+  // Agenda & Turnos
+  | "appointments.view" | "appointments.create" | "appointments.edit" 
+  | "appointments.delete" | "appointments.confirm" | "appointments.cancel"
+  | "appointments.reschedule" | "appointments.export"
+  // Recetas
+  | "prescriptions.view" | "prescriptions.generate" | "prescriptions.send"
+  | "prescriptions.view_history" | "prescriptions.templates"
+  // Facturación
+  | "billing.view" | "billing.create" | "billing.edit" | "billing.delete"
+  | "billing.export" | "billing.afip"
+  // Comunicaciones
+  | "communications.send_whatsapp" | "communications.send_email" 
+  | "communications.send_sms" | "communications.view_history"
+  | "communications.templates" | "communications.chat"
+  // Reportes
+  | "reports.view" | "reports.export" | "reports.analytics"
+  // Ambulatorios
+  | "ambulatorios.view" | "ambulatorios.manage_visits" | "ambulatorios.manage_zones"
+  // Automatizaciones
+  | "automation.view" | "automation.create" | "automation.edit"
+  // Telemedicina
+  | "telemedicine.start_call" | "telemedicine.view_recordings"
+  // Auditoría
+  | "audit.view_logs" | "audit.export"
+  // Sistema
+  | "system.manage_users" | "system.manage_roles" | "system.manage_settings"
+  | "system.manage_modules" | "system.view_config";
+
+// Role permissions mapped to modules
+export const ROLE_PERMISSIONS: Record<UserRole, Permission[] | string[]> = {
+  SUPERADMIN: ["*"], // Full access to everything
+  
   ADMIN: [
-    "manage_users",
-    "manage_patients",
-    "manage_appointments",
-    "view_reports",
-    "manage_billing",
-    "manage_settings",
-    "view_audit_logs"
+    // Pacientes
+    "patients.view", "patients.create", "patients.edit", "patients.delete",
+    "patients.export", "patients.view_medical_history",
+    // Turnos
+    "appointments.view", "appointments.create", "appointments.edit",
+    "appointments.confirm", "appointments.cancel", "appointments.reschedule",
+    "appointments.export",
+    // Recetas
+    "prescriptions.view", "prescriptions.view_history", "prescriptions.templates",
+    // Facturación
+    "billing.view", "billing.create", "billing.edit", "billing.export",
+    // Comunicaciones
+    "communications.send_whatsapp", "communications.send_email",
+    "communications.send_sms", "communications.view_history",
+    "communications.templates", "communications.chat",
+    // Reportes
+    "reports.view", "reports.export", "reports.analytics",
+    // Ambulatorios
+    "ambulatorios.view", "ambulatorios.manage_visits", "ambulatorios.manage_zones",
+    // Sistema
+    "system.manage_users", "system.manage_settings", "system.view_config",
+    "audit.view_logs", "audit.export"
   ],
+  
   MEDICO: [
-    "view_patients",
-    "edit_patients",
-    "manage_appointments",
-    "view_medical_records",
-    "edit_medical_records",
-    "generate_prescriptions",
-    "view_reports"
+    // Pacientes
+    "patients.view", "patients.create", "patients.edit",
+    "patients.view_medical_history", "patients.export",
+    // Turnos
+    "appointments.view", "appointments.create", "appointments.edit",
+    "appointments.confirm", "appointments.cancel", "appointments.reschedule",
+    // Recetas
+    "prescriptions.view", "prescriptions.generate", "prescriptions.send",
+    "prescriptions.view_history", "prescriptions.templates",
+    // Facturación
+    "billing.view",
+    // Comunicaciones
+    "communications.send_whatsapp", "communications.send_email",
+    "communications.view_history", "communications.chat",
+    // Reportes
+    "reports.view", "reports.export",
+    // Ambulatorios
+    "ambulatorios.view", "ambulatorios.manage_visits",
+    // Telemedicina
+    "telemedicine.start_call", "telemedicine.view_recordings"
   ],
+  
   RECEPCIONISTA: [
-    "view_patients",
-    "create_patients",
-    "manage_appointments",
-    "view_waiting_list",
-    "contact_patients"
+    // Pacientes
+    "patients.view", "patients.create", "patients.edit",
+    // Turnos
+    "appointments.view", "appointments.create", "appointments.edit",
+    "appointments.confirm", "appointments.cancel", "appointments.reschedule",
+    "appointments.export",
+    // Comunicaciones
+    "communications.send_whatsapp", "communications.send_sms",
+    "communications.view_history", "communications.chat",
+    // Facturación
+    "billing.view", "billing.create",
+    // Ambulatorios
+    "ambulatorios.view"
   ]
 };
 
@@ -356,9 +428,11 @@ export function getLockedModules(userPlan: PlanTier): ModuleKey[] {
 }
 
 // Helper: Check if user role has permission
-export function hasRolePermission(userRole: UserRole, action: string): boolean {
+export function hasRolePermission(userRole: UserRole, action: Permission | string): boolean {
   const permissions = ROLE_PERMISSIONS[userRole];
-  return permissions.includes("*") || permissions.includes(action);
+  // SUPERADMIN has wildcard access
+  if (userRole === "SUPERADMIN") return true;
+  return permissions.includes(action as Permission);
 }
 
 // Helper: Get required plan for a module

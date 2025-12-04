@@ -50,7 +50,9 @@ import {
   FileCheck,
   FilePlus,
   Loader2,
-  X
+  X,
+  ChevronUp,
+  ChevronDown
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import patientsData from "@/lib/data/patients.json";
@@ -75,6 +77,14 @@ export default function PatientDetailsPage({ params }: { params: Promise<{ id: s
   const [showSnippets, setShowSnippets] = useState(false);
   const [isPrescriptionDialogOpen, setIsPrescriptionDialogOpen] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [expandedHistoryIds, setExpandedHistoryIds] = useState<number[]>(history.map(h => h.id));
+
+  // Toggle expanded state for a history entry
+  const toggleHistoryExpanded = (id: number) => {
+    setExpandedHistoryIds(prev => 
+      prev.includes(id) ? prev.filter(hId => hId !== id) : [...prev, id]
+    );
+  };
 
   // Estado del formulario de receta
   const [prescriptionForm, setPrescriptionForm] = useState({
@@ -507,19 +517,33 @@ export default function PatientDetailsPage({ params }: { params: Promise<{ id: s
               <Clock className="h-5 w-5" />
               Historia Clínica
             </h2>
-            {history.map((entry) => (
-              <Card key={entry.id}>
+            {history.map((entry) => {
+              const isExpanded = expandedHistoryIds.includes(entry.id);
+              return (
+              <Card key={entry.id} className="transition-all">
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 cursor-pointer flex-1" onClick={() => toggleHistoryExpanded(entry.id)}>
+                      <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0">
+                        {isExpanded ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronUp className="h-4 w-4" />
+                        )}
+                      </Button>
                       <Badge variant={entry.type === 'Consulta' ? 'default' : 'secondary'}>
                         {entry.type}
                       </Badge>
                       <span className="text-sm text-muted-foreground flex items-center gap-1">
                         <Clock className="h-3 w-3" /> {entry.date}
                       </span>
+                      {!isExpanded && entry.diagnosis && (
+                        <span className="text-sm text-muted-foreground truncate">
+                          - {entry.diagnosis}
+                        </span>
+                      )}
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 shrink-0">
                       <span className="text-sm font-medium">{entry.doctor}</span>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -540,68 +564,71 @@ export default function PatientDetailsPage({ params }: { params: Promise<{ id: s
                     </div>
                   </div>
 
-                  {entry.diagnosis && (
-                    <div className="mb-3">
-                      <span className="text-xs font-semibold text-muted-foreground uppercase">
-                        Diagnóstico:
-                      </span>
-                      <p className="text-sm font-medium mt-1">
-                        {entry.diagnosisCode && (
-                          <code className="font-mono bg-primary/10 text-primary px-2 py-0.5 rounded mr-2">
-                            {entry.diagnosisCode}
-                          </code>
+                  {isExpanded && (<>
+                    {entry.diagnosis && (
+                      <div className="mb-3">
+                        <span className="text-xs font-semibold text-muted-foreground uppercase">
+                          Diagnóstico:
+                        </span>
+                        <p className="text-sm font-medium mt-1">
+                          {entry.diagnosisCode && (
+                            <code className="font-mono bg-primary/10 text-primary px-2 py-0.5 rounded mr-2">
+                              {entry.diagnosisCode}
+                            </code>
+                          )}
+                          {entry.diagnosis}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Vital Signs Grid */}
+                    {(entry.weight || entry.bloodPressure || entry.temperature) && (
+                      <div className="grid grid-cols-4 gap-3 mb-3 p-3 bg-muted/50 rounded-lg">
+                        {entry.weight && (
+                          <div>
+                            <span className="text-xs text-muted-foreground">Peso</span>
+                            <p className="text-sm font-semibold">{entry.weight} kg</p>
+                          </div>
                         )}
-                        {entry.diagnosis}
-                      </p>
-                    </div>
-                  )}
+                        {entry.height && (
+                          <div>
+                            <span className="text-xs text-muted-foreground">Altura</span>
+                            <p className="text-sm font-semibold">{entry.height} cm</p>
+                          </div>
+                        )}
+                        {entry.bloodPressure && (
+                          <div>
+                            <span className="text-xs text-muted-foreground">Presión</span>
+                            <p className="text-sm font-semibold">{entry.bloodPressure}</p>
+                          </div>
+                        )}
+                        {entry.temperature && (
+                          <div>
+                            <span className="text-xs text-muted-foreground">Temp.</span>
+                            <p className="text-sm font-semibold">{entry.temperature}°C</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
-                  {/* Vital Signs Grid */}
-                  {(entry.weight || entry.bloodPressure || entry.temperature) && (
-                    <div className="grid grid-cols-4 gap-3 mb-3 p-3 bg-muted/50 rounded-lg">
-                      {entry.weight && (
-                        <div>
-                          <span className="text-xs text-muted-foreground">Peso</span>
-                          <p className="text-sm font-semibold">{entry.weight} kg</p>
-                        </div>
-                      )}
-                      {entry.height && (
-                        <div>
-                          <span className="text-xs text-muted-foreground">Altura</span>
-                          <p className="text-sm font-semibold">{entry.height} cm</p>
-                        </div>
-                      )}
-                      {entry.bloodPressure && (
-                        <div>
-                          <span className="text-xs text-muted-foreground">Presión</span>
-                          <p className="text-sm font-semibold">{entry.bloodPressure}</p>
-                        </div>
-                      )}
-                      {entry.temperature && (
-                        <div>
-                          <span className="text-xs text-muted-foreground">Temp.</span>
-                          <p className="text-sm font-semibold">{entry.temperature}°C</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                    <p className="text-sm leading-relaxed whitespace-pre-line">
+                      {entry.notes}
+                    </p>
 
-                  <p className="text-sm leading-relaxed whitespace-pre-line">
-                    {entry.notes}
-                  </p>
-
-                  {entry.attachments && entry.attachments.length > 0 && (
-                    <div className="mt-4 flex gap-2 flex-wrap">
-                      {entry.attachments.map((file, i) => (
-                        <Badge key={i} variant="outline" className="cursor-pointer hover:bg-muted">
-                          <Paperclip className="mr-1 h-3 w-3" /> {file}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
+                    {entry.attachments && entry.attachments.length > 0 && (
+                      <div className="mt-4 flex gap-2 flex-wrap">
+                        {entry.attachments.map((file, i) => (
+                          <Badge key={i} variant="outline" className="cursor-pointer hover:bg-muted">
+                            <Paperclip className="mr-1 h-3 w-3" /> {file}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </>)}
                 </CardContent>
               </Card>
-            ))}
+            );
+            })}
           </div>
         </div>
 

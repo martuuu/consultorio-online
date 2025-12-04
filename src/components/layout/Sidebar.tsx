@@ -21,16 +21,18 @@ import {
   Heart,
   Shield,
   Home,
+  Ambulance,
+  UserCog,
 } from "lucide-react";
 
-// Módulos del sistema con badges para indicar plan (MVP, Pro, Premium)
+// Módulos del sistema organizados por sección
 const sidebarItems = [
-  // ===== MVP (Core Features) =====
+  // ===== GESTIÓN CONSULTORIO (Base) =====
   {
     title: "Agenda",
     href: "/agenda",
     icon: Calendar,
-    badge: null, // Incluido en base
+    badge: null,
   },
   {
     title: "Turnos",
@@ -44,91 +46,99 @@ const sidebarItems = [
     icon: Users,
     badge: null,
   },
+
+  // ===== SERVICIOS ESPECIALIZADOS =====
   {
     title: "Atención Domiciliaria",
     href: "/ambulatorios",
     icon: Home,
-    badge: null, // Feature incluida en plan BASE
+    badge: null,
+  },
+  {
+    title: "Servicio de Emergencias",
+    href: "/emergencias",
+    icon: Ambulance,
+    badge: "PRO",
   },
 
-  // ===== PRO (Monetización Core) =====
+  // ===== GESTIÓN MÉDICA (PRO) =====
   {
     title: "Recetas y Órdenes",
     href: "/recetas",
     icon: FileText,
-    badge: "PRO", // Generación de PDFs con firma digital
+    badge: "PRO",
   },
   {
     title: "Comunicaciones",
     href: "/comunicaciones",
     icon: MessageSquare,
-    badge: "PRO", // WhatsApp API + Email + SMS + Chat Interno
+    badge: "PRO",
   },
   {
     title: "Reportes",
     href: "/reportes",
     icon: BarChart3,
-    badge: "PRO", // Estadísticas de consultorio
+    badge: "PRO",
   },
 
-  // ===== PREMIUM (Features Avanzadas) =====
+  // ===== AUTOMATIZACIÓN (PREMIUM) =====
   {
     title: "Recordatorios",
     href: "/recordatorios",
     icon: Bell,
-    badge: "PREMIUM", // Sistema automatizado de recordatorios
+    badge: "PREMIUM",
   },
   {
     title: "Automatizaciones",
     href: "/automatizaciones",
     icon: Workflow,
-    badge: "PREMIUM", // n8n workflows (seguimientos, emails)
+    badge: "PREMIUM",
   },
   {
     title: "Facturación",
     href: "/facturacion",
     icon: DollarSign,
-    badge: "PREMIUM", // Cobros, Obra Social, AFIP
+    badge: "PREMIUM",
   },
 
-  // ===== ENTERPRISE (Add-ons Opcionales) =====
+  // ===== ENTERPRISE =====
   {
     title: "Auditoría",
     href: "/auditoria",
     icon: FileStack,
-    badge: "ENTERPRISE", // Logs completos, trazabilidad
+    badge: "ENTERPRISE",
   },
   {
     title: "Telemedicina",
     href: "/telemedicina",
     icon: Heart,
-    badge: "ENTERPRISE", // Videollamadas integradas
+    badge: "ENTERPRISE",
   },
   {
     title: "Portal Pacientes",
     href: "/configuracion-portal",
     icon: Users,
-    badge: "ENTERPRISE", // Configuración del portal web
+    badge: "ENTERPRISE",
   },
   {
     title: "Cumplimiento",
     href: "/cumplimiento",
     icon: Shield,
-    badge: "ENTERPRISE", // HIPAA, Ley 25.326, exportaciones
+    badge: "ENTERPRISE",
   },
+];
 
-  // ===== Siempre Visible =====
+// Items de configuración (siempre al final)
+const configItems = [
   {
     title: "Usuarios y Roles",
     href: "/roles",
-    icon: Users,
-    badge: null,
+    icon: UserCog,
   },
   {
     title: "Configuración",
     href: "/configuracion",
     icon: Settings,
-    badge: null,
   },
 ];
 
@@ -174,6 +184,26 @@ export function Sidebar() {
           ))}
         </nav>
       </div>
+      
+      {/* Configuración - Siempre visible al final */}
+      <div className="border-t">
+        <nav className="grid gap-1 px-2 py-3">
+          {configItems.map((item, index) => (
+            <Link
+              key={index}
+              href={item.href}
+              className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
+                pathname === item.href ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+              )}
+            >
+              <item.icon className="h-4 w-4" />
+              <span className="flex-1">{item.title}</span>
+            </Link>
+          ))}
+        </nav>
+      </div>
+
       <div className="border-t p-4">
         <Link href="/login">
           <Button variant="outline" className="w-full justify-start gap-2">

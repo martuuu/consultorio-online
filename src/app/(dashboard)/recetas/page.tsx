@@ -9,7 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, Download, Send, Eye, Plus, Search } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { FileText, Download, Send, Eye, Plus, Search, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { generatePrescription, PrescriptionData } from "@/lib/pdf-generator";
 
 // Mock data
 const MOCK_PATIENTS = [
@@ -55,6 +58,88 @@ const TEMPLATES = [
 export default function RecetasPage() {
   const [selectedPatient, setSelectedPatient] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState("");
+  const [diagnosis, setDiagnosis] = useState("");
+  const [content, setContent] = useState("");
+  const [observations, setObservations] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+
+  // Función para generar PDF
+  const handleGeneratePDF = async () => {
+    if (!selectedPatient) {
+      toast.error("Por favor selecciona un paciente");
+      return;
+    }
+    if (!content) {
+      toast.error("Por favor ingresa el contenido del documento");
+      return;
+    }
+
+    setIsGenerating(true);
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    try {
+      const patient = MOCK_PATIENTS.find(p => p.id.toString() === selectedPatient);
+      
+      const prescriptionData: PrescriptionData = {
+        patientName: patient?.name || "",
+        patientDNI: patient?.dni || "",
+        patientAge: 35,
+        date: new Date(),
+        doctorName: "Dr. Martín Navarro",
+        doctorLicense: "M.N. 123456",
+        medications: content.split('\n').filter(m => m.trim()).map(med => ({
+          name: med,
+          dosage: "Según indicación",
+          frequency: "c/8hs",
+          duration: "5 días",
+        })),
+        diagnosis: diagnosis,
+        notes: observations,
+        clinicName: "Consultorio Médico",
+        clinicAddress: "Av. Corrientes 1234, CABA",
+        clinicPhone: "+54 11 1234-5678"
+      };
+
+      generatePrescription(prescriptionData);
+      toast.success("PDF generado y descargado exitosamente");
+      
+      // Limpiar formulario
+      setContent("");
+      setDiagnosis("");
+      setObservations("");
+    } catch {
+      toast.error("Error al generar el PDF");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Función para enviar por email (mockup)
+  const handleSendEmail = async () => {
+    if (!selectedPatient) {
+      toast.error("Por favor selecciona un paciente");
+      return;
+    }
+
+    setIsSending(true);
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    toast.success("Documento enviado por email exitosamente", {
+      description: "El paciente recibirá el documento en su correo"
+    });
+    setIsSending(false);
+  };
+
+  // Función para mostrar preview
+  const handlePreview = () => {
+    if (!selectedPatient || !content) {
+      toast.error("Completa los datos para ver la vista previa");
+      return;
+    }
+    setShowPreview(true);
+  };
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -127,7 +212,12 @@ export default function RecetasPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="diagnosis">Diagnóstico</Label>
-                  <Input id="diagnosis" placeholder="Ej: J00 - Rinofaringitis aguda" />
+                  <Input 
+                    id="diagnosis" 
+                    placeholder="Ej: J00 - Rinofaringitis aguda"
+                    value={diagnosis}
+                    onChange={(e) => setDiagnosis(e.target.value)}
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -136,6 +226,8 @@ export default function RecetasPage() {
                     id="content" 
                     placeholder="Ej: Ibuprofeno 400mg c/8hs por 5 días, reposo domiciliario..."
                     rows={8}
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
                   />
                 </div>
 
@@ -145,21 +237,45 @@ export default function RecetasPage() {
                     id="observations" 
                     placeholder="Observaciones adicionales..."
                     rows={3}
+                    value={observations}
+                    onChange={(e) => setObservations(e.target.value)}
                   />
                 </div>
 
                 <div className="flex gap-2 pt-4">
-                  <Button className="flex-1" variant="outline">
+                  <Button 
+                    className="flex-1" 
+                    variant="outline"
+                    onClick={handlePreview}
+                    disabled={isGenerating || isSending}
+                  >
                     <Eye className="mr-2 h-4 w-4" />
                     Vista Previa
                   </Button>
-                  <Button className="flex-1 bg-blue-500 hover:bg-blue-600">
-                    <Download className="mr-2 h-4 w-4" />
-                    Generar PDF
+                  <Button 
+                    className="flex-1 bg-blue-500 hover:bg-blue-600"
+                    onClick={handleGeneratePDF}
+                    disabled={isGenerating || isSending}
+                  >
+                    {isGenerating ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="mr-2 h-4 w-4" />
+                    )}
+                    {isGenerating ? "Generando..." : "Generar PDF"}
                   </Button>
-                  <Button className="flex-1" variant="outline">
-                    <Send className="mr-2 h-4 w-4" />
-                    Enviar por Email
+                  <Button 
+                    className="flex-1" 
+                    variant="outline"
+                    onClick={handleSendEmail}
+                    disabled={isGenerating || isSending}
+                  >
+                    {isSending ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="mr-2 h-4 w-4" />
+                    )}
+                    {isSending ? "Enviando..." : "Enviar por Email"}
                   </Button>
                 </div>
               </CardContent>
@@ -190,12 +306,30 @@ export default function RecetasPage() {
                     <p className="font-semibold">DNI: <span className="font-normal">{selectedPatient ? MOCK_PATIENTS.find(p => p.id.toString() === selectedPatient)?.dni : "..."}</span></p>
                   </div>
 
+                  {diagnosis && (
+                    <div className="mb-4">
+                      <p className="font-semibold">Diagnóstico:</p>
+                      <p className="text-sm text-gray-700 pl-4">{diagnosis}</p>
+                    </div>
+                  )}
+
                   <div className="mb-8">
                     <p className="font-semibold mb-2">Prescripción:</p>
-                    <div className="pl-4 text-sm text-gray-700 italic">
-                      Rp/ [El contenido aparecerá aquí]
+                    <div className="pl-4 text-sm text-gray-700">
+                      {content ? (
+                        <div className="whitespace-pre-wrap">Rp/ {content}</div>
+                      ) : (
+                        <div className="italic text-gray-400">Rp/ [El contenido aparecerá aquí]</div>
+                      )}
                     </div>
                   </div>
+
+                  {observations && (
+                    <div className="mb-8">
+                      <p className="font-semibold mb-2">Observaciones:</p>
+                      <p className="text-sm text-gray-700 pl-4 italic">{observations}</p>
+                    </div>
+                  )}
 
                   <div className="mt-12 pt-8 border-t">
                     <div className="text-center">
@@ -326,6 +460,87 @@ export default function RecetasPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Preview Dialog */}
+      <Dialog open={showPreview} onOpenChange={setShowPreview}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Vista Previa del Documento</DialogTitle>
+            <DialogDescription>
+              Revisa el documento antes de generarlo
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="rounded-lg border bg-white p-8 text-gray-800 shadow-inner">
+            <div className="border-b pb-4 mb-6">
+              <h2 className="text-2xl font-bold text-primary">Dr. Martín Navarro</h2>
+              <p className="text-sm text-gray-600">Médico Clínico - M.N. 123456</p>
+              <p className="text-sm text-gray-600">Av. Corrientes 1234, CABA</p>
+              <p className="text-sm text-gray-600">Tel: +54 11 1234-5678</p>
+            </div>
+
+            <div className="mb-6">
+              <h3 className="text-xl font-bold mb-2">
+                {selectedTemplate === "1" && "RECETA MÉDICA"}
+                {selectedTemplate === "2" && "ORDEN DE ESTUDIOS"}
+                {selectedTemplate === "3" && "CERTIFICADO MÉDICO"}
+                {!selectedTemplate && "DOCUMENTO MÉDICO"}
+              </h3>
+              <p className="text-sm text-gray-600">Fecha: {new Date().toLocaleDateString('es-AR')}</p>
+            </div>
+
+            <div className="mb-6">
+              <p className="font-semibold">Paciente: <span className="font-normal">{selectedPatient ? MOCK_PATIENTS.find(p => p.id.toString() === selectedPatient)?.name : ""}</span></p>
+              <p className="font-semibold">DNI: <span className="font-normal">{selectedPatient ? MOCK_PATIENTS.find(p => p.id.toString() === selectedPatient)?.dni : ""}</span></p>
+            </div>
+
+            {diagnosis && (
+              <div className="mb-4">
+                <p className="font-semibold">Diagnóstico:</p>
+                <p className="text-sm text-gray-700 pl-4">{diagnosis}</p>
+              </div>
+            )}
+
+            <div className="mb-8">
+              <p className="font-semibold mb-2">Contenido:</p>
+              <div className="pl-4 text-sm text-gray-700 whitespace-pre-wrap">
+                Rp/ {content}
+              </div>
+            </div>
+
+            {observations && (
+              <div className="mb-8">
+                <p className="font-semibold mb-2">Observaciones:</p>
+                <p className="text-sm text-gray-700 pl-4 italic">{observations}</p>
+              </div>
+            )}
+
+            <div className="mt-12 pt-8 border-t">
+              <div className="text-center">
+                <div className="mb-2">____________________</div>
+                <p className="text-sm font-semibold">Firma Digital</p>
+                <p className="text-xs text-gray-600">Dr. Martín Navarro - M.N. 123456</p>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPreview(false)}>
+              Cerrar
+            </Button>
+            <Button 
+              className="bg-blue-500 hover:bg-blue-600"
+              onClick={() => {
+                setShowPreview(false);
+                handleGeneratePDF();
+              }}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Confirmar y Descargar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

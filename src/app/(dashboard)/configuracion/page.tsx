@@ -76,10 +76,48 @@ export default function ConfiguracionPage() {
 
   // Estados para horarios
   const [isEditHoursDialogOpen, setIsEditHoursDialogOpen] = useState(false);
-  const [schedules, setSchedules] = useState([
-    { day: "Lunes a Viernes", start: "09:00", end: "18:00", enabled: true },
-    { day: "Sábados", start: "09:00", end: "13:00", enabled: true },
-    { day: "Domingos", start: "00:00", end: "00:00", enabled: false },
+  const [isProfessionalScheduleDialogOpen, setIsProfessionalScheduleDialogOpen] = useState(false);
+  const [selectedProfessional, setSelectedProfessional] = useState<number | null>(null);
+  
+  // Horarios generales de mesa de entrada (ahora con bloques múltiples)
+  const [receptionSchedules, setReceptionSchedules] = useState([
+    { day: "Lunes", blocks: [{ start: "08:00", end: "20:00" }], enabled: true },
+    { day: "Martes", blocks: [{ start: "08:00", end: "20:00" }], enabled: true },
+    { day: "Miércoles", blocks: [{ start: "08:00", end: "20:00" }], enabled: true },
+    { day: "Jueves", blocks: [{ start: "08:00", end: "20:00" }], enabled: true },
+    { day: "Viernes", blocks: [{ start: "08:00", end: "20:00" }], enabled: true },
+    { day: "Sábado", blocks: [{ start: "09:00", end: "13:00" }], enabled: true },
+    { day: "Domingo", blocks: [], enabled: false },
+  ]);
+  
+  // Horarios por profesional (mock data con bloques múltiples)
+  const [professionalSchedules, setProfessionalSchedules] = useState([
+    {
+      id: 1,
+      name: "Dr. Martín Navarro",
+      schedules: [
+        { day: "Lunes", blocks: [{ start: "09:00", end: "13:00" }, { start: "15:00", end: "19:00" }], enabled: true },
+        { day: "Martes", blocks: [{ start: "09:00", end: "13:00" }, { start: "15:00", end: "19:00" }], enabled: true },
+        { day: "Miércoles", blocks: [{ start: "09:00", end: "18:00" }], enabled: true },
+        { day: "Jueves", blocks: [{ start: "09:00", end: "18:00" }], enabled: true },
+        { day: "Viernes", blocks: [{ start: "09:00", end: "13:00" }], enabled: true },
+        { day: "Sábado", blocks: [], enabled: false },
+        { day: "Domingo", blocks: [], enabled: false },
+      ]
+    },
+    {
+      id: 2,
+      name: "Dra. Laura López",
+      schedules: [
+        { day: "Lunes", blocks: [{ start: "14:00", end: "20:00" }], enabled: true },
+        { day: "Martes", blocks: [{ start: "14:00", end: "20:00" }], enabled: true },
+        { day: "Miércoles", blocks: [{ start: "14:00", end: "20:00" }], enabled: true },
+        { day: "Jueves", blocks: [{ start: "14:00", end: "20:00" }], enabled: true },
+        { day: "Viernes", blocks: [{ start: "08:00", end: "12:00" }, { start: "18:00", end: "22:00" }], enabled: true },
+        { day: "Sábado", blocks: [{ start: "09:00", end: "13:00" }], enabled: true },
+        { day: "Domingo", blocks: [], enabled: false },
+      ]
+    },
   ]);
 
   // Estados para salas
@@ -135,12 +173,26 @@ export default function ConfiguracionPage() {
     setIsSaving(false);
   };
 
-  // Función guardar horarios
-  const handleSaveSchedules = async () => {
+  // Función guardar horarios de mesa de entrada
+  const handleSaveReceptionSchedules = async () => {
     setIsSaving(true);
     await new Promise(resolve => setTimeout(resolve, 800));
-    toast.success("Horarios actualizados correctamente");
+    toast.success("Horarios de mesa de entrada actualizados correctamente");
     setIsEditHoursDialogOpen(false);
+    setIsSaving(false);
+  };
+  
+  // Función guardar horarios de profesional
+  const handleSaveProfessionalSchedule = async () => {
+    if (selectedProfessional === null) return;
+    
+    setIsSaving(true);
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    const professional = professionalSchedules.find(p => p.id === selectedProfessional);
+    toast.success(`Horarios de ${professional?.name} actualizados correctamente`);
+    setIsProfessionalScheduleDialogOpen(false);
+    setSelectedProfessional(null);
     setIsSaving(false);
   };
 
@@ -296,8 +348,9 @@ export default function ConfiguracionPage() {
       </div>
 
       <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 lg:w-auto">
+        <TabsList className="grid w-full grid-cols-5 lg:w-auto">
           <TabsTrigger value="general">General</TabsTrigger>
+          <TabsTrigger value="schedules">Horarios Médicos</TabsTrigger>
           <TabsTrigger value="rooms">Salas</TabsTrigger>
           <TabsTrigger value="users">Usuarios</TabsTrigger>
           <TabsTrigger value="profile">Mi Perfil</TabsTrigger>
@@ -363,86 +416,135 @@ export default function ConfiguracionPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Clock className="h-5 w-5" />
-                  Horarios de Atención
+                  Horarios de Mesa de Entrada
                 </CardTitle>
                 <CardDescription>
-                  Define los horarios de funcionamiento del consultorio.
+                  Horarios en que la secretaría atiende (independiente de la agenda médica)
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between rounded-lg border p-3">
-                    <span className="text-sm font-medium">Lunes a Viernes</span>
-                    <div className="flex gap-2 items-center text-sm">
-                      <Input className="w-20 h-8" type="time" defaultValue="09:00" />
-                      <span>-</span>
-                      <Input className="w-20 h-8" type="time" defaultValue="18:00" />
+                <div className="space-y-2">
+                  {receptionSchedules.slice(0, 3).map((schedule, index) => (
+                    <div key={index} className="flex items-center justify-between rounded-lg border p-2">
+                      <span className="text-sm font-medium w-24">{schedule.day}</span>
+                      {schedule.enabled && schedule.blocks.length > 0 ? (
+                        <div className="flex gap-1 items-center text-xs flex-wrap">
+                          {schedule.blocks.map((block, blockIdx) => (
+                            <span key={blockIdx} className="text-muted-foreground">
+                              {block.start} - {block.end}
+                              {blockIdx < schedule.blocks.length - 1 && <span className="ml-1 text-primary">•</span>}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <Badge variant="outline" className="text-xs">Cerrado</Badge>
+                      )}
                     </div>
-                  </div>
-                  <div className="flex items-center justify-between rounded-lg border p-3">
-                    <span className="text-sm font-medium">Sábados</span>
-                    <div className="flex gap-2 items-center text-sm">
-                      <Input className="w-20 h-8" type="time" defaultValue="09:00" />
-                      <span>-</span>
-                      <Input className="w-20 h-8" type="time" defaultValue="13:00" />
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between rounded-lg border p-3 opacity-50">
-                    <span className="text-sm font-medium">Domingos</span>
-                    <Badge variant="outline">Cerrado</Badge>
-                  </div>
+                  ))}
+                  <p className="text-xs text-muted-foreground pt-2">
+                    Sábados: {receptionSchedules[5].enabled && receptionSchedules[5].blocks.length > 0
+                      ? receptionSchedules[5].blocks.map(b => `${b.start}-${b.end}`).join(' • ')
+                      : "Cerrado"}
+                  </p>
                 </div>
                 <Dialog open={isEditHoursDialogOpen} onOpenChange={setIsEditHoursDialogOpen}>
                   <DialogTrigger asChild>
                     <Button className="w-full" variant="outline">
                       <Edit2 className="mr-2 h-4 w-4" />
-                      Editar Horarios
+                      Editar Horarios Mesa de Entrada
                     </Button>
                   </DialogTrigger>
-                  <DialogContent>
+                  <DialogContent className="max-w-2xl">
                     <DialogHeader>
-                      <DialogTitle>Editar Horarios de Atención</DialogTitle>
+                      <DialogTitle>Horarios de Mesa de Entrada / Secretaría</DialogTitle>
                       <DialogDescription>
-                        Configura los días y horarios de funcionamiento del consultorio
+                        Configura los horarios en que la mesa de entrada está disponible. Puedes agregar múltiples bloques horarios por día (ej: 8-12 y 18-22)
                       </DialogDescription>
                     </DialogHeader>
-                    <div className="space-y-4 py-4">
-                      {schedules.map((schedule, index) => (
-                        <div key={index} className="flex items-center justify-between rounded-lg border p-3">
-                          <span className="text-sm font-medium w-32">{schedule.day}</span>
-                          <div className="flex gap-2 items-center">
-                            <Input 
-                              className="w-24 h-9" 
-                              type="time" 
-                              value={schedule.start}
-                              disabled={!schedule.enabled}
+                    <div className="space-y-3 py-4 max-h-[60vh] overflow-y-auto">
+                      {receptionSchedules.map((schedule, index) => (
+                        <div key={index} className="rounded-lg border p-3">
+                          <div className="flex items-center gap-3 mb-3">
+                            <input 
+                              type="checkbox" 
+                              checked={schedule.enabled}
                               onChange={(e) => {
-                                const newSchedules = [...schedules];
-                                newSchedules[index].start = e.target.value;
-                                setSchedules(newSchedules);
+                                const newSchedules = [...receptionSchedules];
+                                newSchedules[index].enabled = e.target.checked;
+                                if (e.target.checked && newSchedules[index].blocks.length === 0) {
+                                  newSchedules[index].blocks = [{ start: "08:00", end: "20:00" }];
+                                }
+                                setReceptionSchedules(newSchedules);
                               }}
+                              className="h-4 w-4"
                             />
-                            <span className="text-muted-foreground">-</span>
-                            <Input 
-                              className="w-24 h-9" 
-                              type="time" 
-                              value={schedule.end}
-                              disabled={!schedule.enabled}
-                              onChange={(e) => {
-                                const newSchedules = [...schedules];
-                                newSchedules[index].end = e.target.value;
-                                setSchedules(newSchedules);
-                              }}
-                            />
+                            <span className="text-sm font-medium">{schedule.day}</span>
                           </div>
+                          
+                          {schedule.enabled && (
+                            <div className="space-y-2 ml-7">
+                              {schedule.blocks.map((block, blockIdx) => (
+                                <div key={blockIdx} className="flex gap-2 items-center">
+                                  <Input 
+                                    className="w-28 h-9" 
+                                    type="time" 
+                                    value={block.start}
+                                    onChange={(e) => {
+                                      const newSchedules = [...receptionSchedules];
+                                      newSchedules[index].blocks[blockIdx].start = e.target.value;
+                                      setReceptionSchedules(newSchedules);
+                                    }}
+                                  />
+                                  <span className="text-muted-foreground">-</span>
+                                  <Input 
+                                    className="w-28 h-9" 
+                                    type="time" 
+                                    value={block.end}
+                                    onChange={(e) => {
+                                      const newSchedules = [...receptionSchedules];
+                                      newSchedules[index].blocks[blockIdx].end = e.target.value;
+                                      setReceptionSchedules(newSchedules);
+                                    }}
+                                  />
+                                  {schedule.blocks.length > 1 && (
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-9 w-9 p-0"
+                                      onClick={() => {
+                                        const newSchedules = [...receptionSchedules];
+                                        newSchedules[index].blocks = newSchedules[index].blocks.filter((_, i) => i !== blockIdx);
+                                        setReceptionSchedules(newSchedules);
+                                      }}
+                                    >
+                                      <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                  )}
+                                </div>
+                              ))}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 text-xs"
+                                onClick={() => {
+                                  const newSchedules = [...receptionSchedules];
+                                  newSchedules[index].blocks.push({ start: "14:00", end: "18:00" });
+                                  setReceptionSchedules(newSchedules);
+                                }}
+                              >
+                                <Plus className="h-3 w-3 mr-1" />
+                                Agregar bloque horario
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-end gap-2 pt-4 border-t">
                       <Button variant="outline" onClick={() => setIsEditHoursDialogOpen(false)}>
                         Cancelar
                       </Button>
-                      <Button onClick={handleSaveSchedules} disabled={isSaving}>
+                      <Button onClick={handleSaveReceptionSchedules} disabled={isSaving}>
                         {isSaving ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -458,6 +560,236 @@ export default function ConfiguracionPage() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="schedules" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5" />
+                Horarios de Agenda por Profesional
+              </CardTitle>
+              <CardDescription>
+                Configura los días y horarios de atención de cada profesional. Estos horarios definen cuándo cada médico tiene turnos disponibles en la agenda.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {professionalSchedules.map((professional) => (
+                <div key={professional.id} className="rounded-lg border p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold">{professional.name}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {professional.schedules.filter(s => s.enabled).length} días configurados
+                      </p>
+                    </div>
+                    <Dialog 
+                      open={isProfessionalScheduleDialogOpen && selectedProfessional === professional.id} 
+                      onOpenChange={(open) => {
+                        setIsProfessionalScheduleDialogOpen(open);
+                        if (open) {
+                          setSelectedProfessional(professional.id);
+                        } else {
+                          setSelectedProfessional(null);
+                        }
+                      }}
+                    >
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Edit2 className="mr-2 h-4 w-4" />
+                          Editar Agenda
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl">
+                        <DialogHeader>
+                          <DialogTitle>Configurar Agenda: {professional.name}</DialogTitle>
+                          <DialogDescription>
+                            Define los días y horarios en que este profesional atiende pacientes. Puedes agregar múltiples bloques por día (ej: mañana y tarde).
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-3 py-4 max-h-[60vh] overflow-y-auto">
+                          {professional.schedules.map((schedule, index) => (
+                            <div key={index} className="rounded-lg border p-3">
+                              <div className="flex items-center gap-3 mb-3">
+                                <input 
+                                  type="checkbox" 
+                                  checked={schedule.enabled}
+                                  onChange={(e) => {
+                                    const newProfessionals = professionalSchedules.map(p => {
+                                      if (p.id === professional.id) {
+                                        const newSchedules = [...p.schedules];
+                                        newSchedules[index].enabled = e.target.checked;
+                                        if (e.target.checked && newSchedules[index].blocks.length === 0) {
+                                          newSchedules[index].blocks = [{ start: "09:00", end: "18:00" }];
+                                        }
+                                        return { ...p, schedules: newSchedules };
+                                      }
+                                      return p;
+                                    });
+                                    setProfessionalSchedules(newProfessionals);
+                                  }}
+                                  className="h-4 w-4"
+                                />
+                                <span className="text-sm font-medium">{schedule.day}</span>
+                              </div>
+                              
+                              {schedule.enabled && (
+                                <div className="space-y-2 ml-7">
+                                  {schedule.blocks.map((block, blockIdx) => (
+                                    <div key={blockIdx} className="flex gap-2 items-center">
+                                      <Input 
+                                        className="w-28 h-9" 
+                                        type="time" 
+                                        value={block.start}
+                                        onChange={(e) => {
+                                          const newProfessionals = professionalSchedules.map(p => {
+                                            if (p.id === professional.id) {
+                                              const newSchedules = [...p.schedules];
+                                              newSchedules[index].blocks[blockIdx].start = e.target.value;
+                                              return { ...p, schedules: newSchedules };
+                                            }
+                                            return p;
+                                          });
+                                          setProfessionalSchedules(newProfessionals);
+                                        }}
+                                      />
+                                      <span className="text-muted-foreground">-</span>
+                                      <Input 
+                                        className="w-28 h-9" 
+                                        type="time" 
+                                        value={block.end}
+                                        onChange={(e) => {
+                                          const newProfessionals = professionalSchedules.map(p => {
+                                            if (p.id === professional.id) {
+                                              const newSchedules = [...p.schedules];
+                                              newSchedules[index].blocks[blockIdx].end = e.target.value;
+                                              return { ...p, schedules: newSchedules };
+                                            }
+                                            return p;
+                                          });
+                                          setProfessionalSchedules(newProfessionals);
+                                        }}
+                                      />
+                                      {schedule.blocks.length > 1 && (
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          className="h-9 w-9 p-0"
+                                          onClick={() => {
+                                            const newProfessionals = professionalSchedules.map(p => {
+                                              if (p.id === professional.id) {
+                                                const newSchedules = [...p.schedules];
+                                                newSchedules[index].blocks = newSchedules[index].blocks.filter((_, i) => i !== blockIdx);
+                                                return { ...p, schedules: newSchedules };
+                                              }
+                                              return p;
+                                            });
+                                            setProfessionalSchedules(newProfessionals);
+                                          }}
+                                        >
+                                          <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                      )}
+                                    </div>
+                                  ))}
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8 text-xs"
+                                    onClick={() => {
+                                      const newProfessionals = professionalSchedules.map(p => {
+                                        if (p.id === professional.id) {
+                                          const newSchedules = [...p.schedules];
+                                          newSchedules[index].blocks.push({ start: "14:00", end: "18:00" });
+                                          return { ...p, schedules: newSchedules };
+                                        }
+                                        return p;
+                                      });
+                                      setProfessionalSchedules(newProfessionals);
+                                    }}
+                                  >
+                                    <Plus className="h-3 w-3 mr-1" />
+                                    Agregar bloque
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                          
+                          <div className="bg-muted/50 rounded-lg p-4 mt-4">
+                            <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                              <Clock className="h-4 w-4" />
+                              Configuración de Turnos
+                            </h4>
+                            <div className="grid gap-3">
+                              <div className="flex items-center justify-between">
+                                <Label htmlFor="duration" className="text-sm">Duración por turno</Label>
+                                <Select defaultValue="30">
+                                  <SelectTrigger className="w-32 h-9" id="duration">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="15">15 min</SelectItem>
+                                    <SelectItem value="20">20 min</SelectItem>
+                                    <SelectItem value="30">30 min</SelectItem>
+                                    <SelectItem value="45">45 min</SelectItem>
+                                    <SelectItem value="60">60 min</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <Label htmlFor="overlap" className="text-sm">Permitir sobreturno</Label>
+                                <input type="checkbox" id="overlap" className="h-4 w-4" defaultChecked />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex justify-end gap-2 pt-4 border-t">
+                          <Button 
+                            variant="outline" 
+                            onClick={() => {
+                              setIsProfessionalScheduleDialogOpen(false);
+                              setSelectedProfessional(null);
+                            }}
+                          >
+                            Cancelar
+                          </Button>
+                          <Button onClick={handleSaveProfessionalSchedule} disabled={isSaving}>
+                            {isSaving ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Guardando...
+                              </>
+                            ) : (
+                              "Guardar Agenda"
+                            )}
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {professional.schedules.filter(s => s.enabled && s.blocks.length > 0).map((schedule, idx) => (
+                      <div key={idx} className="text-xs bg-muted/50 rounded px-2 py-1.5">
+                        <div className="font-medium">{schedule.day}</div>
+                        <div className="text-muted-foreground space-y-0.5">
+                          {schedule.blocks.map((block, blockIdx) => (
+                            <div key={blockIdx}>{block.start} - {block.end}</div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                    {professional.schedules.filter(s => s.enabled && s.blocks.length > 0).length === 0 && (
+                      <div className="col-span-full text-sm text-muted-foreground italic">
+                        Sin horarios configurados
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="rooms" className="space-y-4">

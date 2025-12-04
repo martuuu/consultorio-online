@@ -285,6 +285,9 @@
   font-size: 0.875rem;
 }
 
+/* Work week view styling - native support from react-big-calendar */
+/* The work_week view natively shows only Mon-Fri without breaking grid layout */
+
 /* Responsive adjustments */
 @media (max-width: 640px) {
   .rbc-toolbar {

@@ -11,7 +11,7 @@ import roomsData from "@/lib/data/room.json";
 import waitingListData from "@/lib/data/waiting-list.json";
 import timeBlocksData from "@/lib/data/time-blocks.json";
 import { Button } from "@/components/ui/button";
-import { Plus, Filter, Calendar as CalendarIcon, Clock, Users, Mail, Phone, FileText, MapPin, Search, Download, AlertCircle, Lightbulb, CheckCircle2, XCircle, CalendarClock, MessageSquare, AlertTriangle, Check, X, RefreshCw, Send } from "lucide-react";
+import { Plus, Filter, Calendar as CalendarIcon, Clock, Users, Mail, Phone, FileText, MapPin, Search, Download, AlertCircle, Lightbulb, CheckCircle2, XCircle, CalendarClock, MessageSquare, AlertTriangle, Check, X, RefreshCw, Send, ChevronUp, ChevronDown } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -67,7 +67,7 @@ interface Event {
   status?: string;
 }
 
-type CalendarView = 'month' | 'week' | 'day' | 'agenda';
+type CalendarView = 'month' | 'week' | 'work_week' | 'day' | 'agenda';
 
 export default function AgendaPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -85,6 +85,34 @@ export default function AgendaPage() {
   const [rescheduleDate, setRescheduleDate] = useState<Date | undefined>(new Date());
   const [rescheduleTime, setRescheduleTime] = useState<string>("09:00");
   const [isLoading, setIsLoading] = useState(false);
+  const [isWaitingListExpanded, setIsWaitingListExpanded] = useState(true);
+  const [expandedWaitingItems, setExpandedWaitingItems] = useState<number[]>(
+    waitingListData.map(item => item.id)
+  );
+  
+  // Configuración de visualización
+  const [showWeekends, setShowWeekends] = useState(true);
+  const [calendarStartHour, setCalendarStartHour] = useState(8);
+  const [calendarEndHour, setCalendarEndHour] = useState(20);
+
+  // Toggle individual waiting list item
+  const toggleWaitingItem = (id: number) => {
+    setExpandedWaitingItems(prev => 
+      prev.includes(id) 
+        ? prev.filter(itemId => itemId !== id)
+        : [...prev, id]
+    );
+  };
+
+  // Toggle all waiting list items
+  const toggleAllWaitingItems = () => {
+    if (isWaitingListExpanded) {
+      setExpandedWaitingItems([]);
+    } else {
+      setExpandedWaitingItems(waitingListData.map(item => item.id));
+    }
+    setIsWaitingListExpanded(!isWaitingListExpanded);
+  };
 
   // Transform string dates to Date objects - usando useMemo para evitar recalcular
   const events = useMemo<Event[]>(() => {
@@ -535,44 +563,119 @@ export default function AgendaPage() {
       {/* Filtros y controles */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Filtros:</span>
-              <Select value={selectedRoom} onValueChange={setSelectedRoom}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Todas las salas" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas las salas</SelectItem>
-                  <SelectItem value="1">Consultorio 1</SelectItem>
-                  <SelectItem value="2">Consultorio 2</SelectItem>
-                  <SelectItem value="3">Sala de Procedimientos</SelectItem>
-                </SelectContent>
-              </Select>
+          <div className="flex flex-col gap-3">
+            {/* Primera fila: Filtros */}
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Filter className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Filtros:</span>
+                <Select value={selectedRoom} onValueChange={setSelectedRoom}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Todas las salas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas las salas</SelectItem>
+                    <SelectItem value="1">Consultorio 1</SelectItem>
+                    <SelectItem value="2">Consultorio 2</SelectItem>
+                    <SelectItem value="3">Sala de Procedimientos</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Vistas */}
+              <div className="flex gap-2">
+                <Badge 
+                  variant={currentView === "day" ? "default" : "outline"} 
+                  className="cursor-pointer"
+                  onClick={() => setCurrentView("day")}
+                >
+                  Día
+                </Badge>
+                <Badge 
+                  variant={currentView === "week" || currentView === "work_week" ? "default" : "outline"} 
+                  className="cursor-pointer"
+                  onClick={() => setCurrentView(showWeekends ? "week" : "work_week")}
+                >
+                  Semana
+                </Badge>
+                <Badge 
+                  variant={currentView === "month" ? "default" : "outline"} 
+                  className="cursor-pointer"
+                  onClick={() => setCurrentView("month")}
+                >
+                  Mes
+                </Badge>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Badge 
-                variant={currentView === "day" ? "default" : "outline"} 
-                className="cursor-pointer"
-                onClick={() => setCurrentView("day")}
-              >
-                Día
-              </Badge>
-              <Badge 
-                variant={currentView === "week" ? "default" : "outline"} 
-                className="cursor-pointer"
-                onClick={() => setCurrentView("week")}
-              >
-                Semana
-              </Badge>
-              <Badge 
-                variant={currentView === "month" ? "default" : "outline"} 
-                className="cursor-pointer"
-                onClick={() => setCurrentView("month")}
-              >
-                Mes
-              </Badge>
+
+            <Separator />
+
+            {/* Segunda fila: Configuración de visualización */}
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+              <div className="flex items-center gap-4 flex-wrap">
+                {/* Toggle fines de semana */}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="show-weekends"
+                    checked={showWeekends}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setShowWeekends(checked);
+                      // Cambiar automáticamente la vista según el toggle
+                      if (currentView === "week" || currentView === "work_week") {
+                        setCurrentView(checked ? "week" : "work_week");
+                      }
+                    }}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                  <Label htmlFor="show-weekends" className="text-sm font-normal cursor-pointer">
+                    Mostrar fines de semana
+                  </Label>
+                </div>
+
+                <Separator orientation="vertical" className="h-6 hidden sm:block" />
+
+                {/* Selector de hora inicio */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Desde:</span>
+                  <Select 
+                    value={calendarStartHour.toString()} 
+                    onValueChange={(val) => setCalendarStartHour(parseInt(val))}
+                  >
+                    <SelectTrigger className="w-20 h-8">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 12 }, (_, i) => i + 6).map((hour) => (
+                        <SelectItem key={hour} value={hour.toString()}>
+                          {hour.toString().padStart(2, '0')}:00
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Selector de hora fin */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Hasta:</span>
+                  <Select 
+                    value={calendarEndHour.toString()} 
+                    onValueChange={(val) => setCalendarEndHour(parseInt(val))}
+                  >
+                    <SelectTrigger className="w-20 h-8">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 8 }, (_, i) => i + 18).map((hour) => (
+                        <SelectItem key={hour} value={hour.toString()}>
+                          {hour.toString().padStart(2, '0')}:00
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -592,8 +695,8 @@ export default function AgendaPage() {
             onSelectSlot={handleSelectSlot}
             onSelectEvent={handleSelectEvent}
             eventPropGetter={eventStyleGetter}
-            min={new Date(2025, 0, 1, 7, 0, 0)}
-            max={new Date(2025, 0, 1, 20, 0, 0)}
+            min={new Date(2025, 0, 1, calendarStartHour, 0, 0)}
+            max={new Date(2025, 0, 1, calendarEndHour, 0, 0)}
             step={30}
             timeslots={2}
             formats={{
@@ -606,6 +709,7 @@ export default function AgendaPage() {
               today: "Hoy",
               month: "Mes",
               week: "Semana",
+              work_week: "Semana Laboral",
               day: "Día",
               agenda: "Agenda",
               date: "Fecha",
@@ -614,7 +718,7 @@ export default function AgendaPage() {
               noEventsInRange: "No hay eventos en este rango",
             }}
             defaultView={Views.WEEK}
-            views={['month', 'week', 'day', 'agenda']}
+            views={['month', 'week', 'work_week', 'day', 'agenda']}
             view={currentView}
             onView={(view) => setCurrentView(view as CalendarView)}
             dayLayoutAlgorithm="no-overlap"
@@ -965,7 +1069,30 @@ export default function AgendaPage() {
                 <Clock className="h-4 w-4" />
                 Lista de Espera
               </h3>
-              <Badge variant="secondary">{waitingListData.length}</Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">{waitingListData.length}</Badge>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-7 w-7 p-0"
+                      onClick={toggleAllWaitingItems}
+                    >
+                      {expandedWaitingItems.length === waitingListData.length ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {expandedWaitingItems.length === waitingListData.length 
+                      ? 'Contraer todos' 
+                      : 'Expandir todos'}
+                  </TooltipContent>
+                </Tooltip>
+              </div>
             </div>
             
             <p className="text-xs text-muted-foreground">
@@ -975,41 +1102,77 @@ export default function AgendaPage() {
             <Separator />
 
             <div className="space-y-3 max-h-[calc(100vh-300px)] overflow-y-auto">
-              {waitingListData.map((item) => (
-                <Card key={item.id} className="border-l-4 border-l-amber-500">
-                  <CardContent className="p-4 space-y-2">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h4 className="font-medium text-sm">{item.patientName}</h4>
-                        <p className="text-xs text-muted-foreground mt-1">{item.reason}</p>
+              {waitingListData.map((item) => {
+                const isItemExpanded = expandedWaitingItems.includes(item.id);
+                return (
+                  <Card 
+                    key={item.id} 
+                    className="border-l-4 border-l-cyan-500 transition-all hover:shadow-md hover:shadow-cyan-500/10 hover:border-l-cyan-600 hover:-translate-y-0.5 cursor-pointer"
+                    onClick={() => toggleWaitingItem(item.id)}
+                  >
+                    <CardContent className={isItemExpanded ? "p-4 space-y-2" : "p-3"}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-sm truncate">{item.patientName}</h4>
+                          <p className={`text-xs text-muted-foreground ${isItemExpanded ? 'mt-1' : 'truncate'}`}>
+                            {item.reason}
+                          </p>
+                        </div>
+                        {item.priority === 'high' && (
+                          <Badge variant="destructive" className="text-xs shrink-0">Urgente</Badge>
+                        )}
                       </div>
-                      {item.priority === 'high' && (
-                        <Badge variant="destructive" className="text-xs">Urgente</Badge>
-                      )}
-                    </div>
-                    
-                    <div className="space-y-1 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Phone className="h-3 w-3" />
-                        <span>{item.phone}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <CalendarIcon className="h-3 w-3" />
-                        <span>Fechas preferidas: {item.preferredDates.slice(0, 2).join(', ')}</span>
-                      </div>
-                    </div>
+                      
+                      {isItemExpanded ? (
+                        <>
+                          <div className="space-y-1 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              <Phone className="h-3 w-3" />
+                              <span>{item.phone}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <CalendarIcon className="h-3 w-3" />
+                              <span>Fechas preferidas: {item.preferredDates.slice(0, 2).join(', ')}</span>
+                            </div>
+                          </div>
 
-                    <div className="flex gap-2 pt-2">
-                      <Button size="sm" variant="outline" className="flex-1 h-7 text-xs">
-                        Contactar
-                      </Button>
-                      <Button size="sm" className="flex-1 h-7 text-xs">
-                        Asignar Turno
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                          <div className="flex gap-2 pt-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="flex-1 h-7 text-xs"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              Contactar
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              className="flex-1 h-7 text-xs"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              Asignar Turno
+                            </Button>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex items-center justify-between gap-2 mt-1">
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <Clock className="h-3 w-3" />
+                            <span>15 min</span>
+                          </div>
+                          <Button 
+                            size="sm" 
+                            className="h-6 text-xs px-2"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            Llamar
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
 
             <Button variant="outline" className="w-full" size="sm">
